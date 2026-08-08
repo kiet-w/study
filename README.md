@@ -1,200 +1,178 @@
-# 📚 StudySnap AI — Smart Textbook & Lecture Photo Organizer
+# 📚 StudySnap — Chụp & Sắp Xếp Kiến Thức Bài Giảng
 
-> **Giải pháp quản lý, trích xuất và biến ảnh chụp giáo trình/bảng viết/slide bài giảng thành kho tri thức thông minh cho Học sinh & Sinh viên.**
+> App Android giúp học sinh/sinh viên chụp ảnh bài giảng, tự động phân loại theo môn học, không lẫn lộn với ảnh cá nhân trong album điện thoại.
 
-[![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js)](https://nextjs.org/)
-[![Supabase](https://img.shields.io/badge/Supabase-Database%20%26%20Auth-3ECF8E?logo=supabase)](https://supabase.com/)
-[![Google Gemini API](https://img.shields.io/badge/Google%20Gemini-1.5%20%2F%202.0%20Flash-4285F4?logo=google-gemini)](https://ai.google.dev/)
-[![BullMQ](https://img.shields.io/badge/BullMQ-Redis%20Queue-DC382D?logo=redis)](https://bullmq.io/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?logo=typescript)](https://www.typescriptlang.org/)
+[![React Native](https://img.shields.io/badge/React_Native-Expo-000020?logo=expo)](https://expo.dev/)
+[![Supabase](https://img.shields.io/badge/Supabase-Auth%20%7C%20DB%20%7C%20Storage-3ECF8E?logo=supabase)](https://supabase.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 ---
 
-## 🎯 Vấn Đề (The Pain Point)
+## Vấn đề
 
-Học sinh, sinh viên thường xuyên dùng điện thoại chụp lại:
-- **Slide bài giảng** trên lớp.
-- **Trang sách / giáo trình / đề thi**.
-- **Ghi chú trên bảng đen / bảng trắng** của giảng viên.
-- **Bài giải bài tập viết tay** của bạn bè.
+Học sinh chụp slide, bảng viết, đề thi, bài giải bằng điện thoại mỗi ngày. Ảnh lẫn lộn với selfie, meme, đồ ăn trong album. Đến lúc ôn thi → không tìm lại được. Chia sẻ cho bạn bè → phải lục từng ảnh. Vật lý lẫn với Hóa học → không theo dõi được.
 
-👉 **Hậu quả:** Hàng trăm ảnh học tập bị lẫn lộn rối loạn với ảnh chụp cá nhân, meme, đồ ăn trong Album ảnh điện thoại. Đến kỳ thi, việc tìm lại một công thức hay một slide đã chụp từ 3 tuần trước trở thành **ác mộng**.
+## Giải pháp
+
+App riêng biệt chỉ dành cho ảnh bài giảng. Chọn môn trước → chụp → ảnh tự vào đúng chỗ. Không cần sắp xếp thủ công.
 
 ---
 
-## 💡 Giải Pháp (The Solution)
+## Tech Stack
 
-**StudySnap AI** tái cấu trúc hoàn toàn trải nghiệm lưu trữ bài học bằng trí tuệ nhân tạo:
-1. **Tự động phân loại:** AI nhận diện môn học (Giải tích, Vật lý, Triết học, v.v.), loại tài liệu (Slide, Bảng viết, Sách, Đề thi) và tạo tiêu đề/thẻ tự động.
-2. **OCR Multimodal siêu chính xác:** Trích xuất công thức toán học dạng **LaTeX**, bảng biểu dạng **Markdown**, và chữ viết tay.
-3. **Tìm kiếm ngữ nghĩa (Semantic RAG Search):** Tìm theo khái niệm thay vì chỉ tìm từ khóa chính xác (VD: gõ "bài tập đạo hàm" sẽ ra đúng ảnh chứa bài tập đó).
-4. **Hỏi đáp & Tạo Flashcard với AI:** Chat trực tiếp với tập ảnh giáo trình, tự tạo thẻ ghi nhớ (Anki/Flashcards) và câu hỏi trắc nghiệm ôn tập.
-
----
-
-## 🚀 Công Nghệ Sử Dụng (Tech Stack)
-
-Tận dụng và phát huy tối đa kiến thức kỹ thuật hiện có:
-
-| Tầng (Layer) | Công nghệ | Vai trò & Lý do lựa chọn |
-| :--- | :--- | :--- |
-| **Frontend** | **Next.js 14 (App Router) + React + Tailwind CSS** | Server Components tối ưu SEO, UI/UX hiện đại, giao diện PWA mượt mà trên Mobile & Desktop |
-| **Database & Auth** | **Supabase (PostgreSQL + pgvector)** | Authentication (Google/Email), RLS bảo mật dữ liệu người dùng, lưu trữ Vector Embeddings để tìm kiếm ngữ nghĩa |
-| **File Storage** | **Supabase Storage** | Lưu trữ ảnh gốc, ảnh nén thumbnail và tài liệu trích xuất |
-| **AI Vision & NLP** | **Google Gemini 1.5 / 2.0 Flash Vision API** | Nhận diện hình ảnh đa thức (Multimodal), OCR công thức LaTeX, trích xuất cấu trúc văn bản & tóm tắt bài học |
-| **Async Pipeline** | **BullMQ + Redis** | Hàng chờ xử lý bất đồng bộ khi sinh viên tải lên hàng loạt 20-50 ảnh cùng lúc sau buổi học |
-| **Realtime Feedback** | **Server-Sent Events (SSE)** | Cập nhật tiến độ xử lý ảnh theo thời gian thực lên giao diện người dùng ("Đang phân loại 3/20...", "Hoàn tất") |
+| Layer | Công nghệ | Lý do |
+|:------|:----------|:------|
+| **Mobile App** | **React Native + Expo** | Tận dụng kinh nghiệm React/Next.js đã có, learning curve gần bằng 0. Expo cho camera, file system, EAS Build APK |
+| **Backend & Auth** | **Supabase** (PostgreSQL, Auth, Storage, Realtime) | Đã quen dùng. RLS bảo mật dữ liệu cá nhân. Auth Google/Email sẵn. Realtime cho nhóm chat sau này |
+| **AI (giai đoạn sau)** | **NestJS + BullMQ + Redis + Gemini Vision API** | Tái sử dụng pipeline đã build cho app note-taking: ảnh → queue → Gemini OCR → SSE trả kết quả |
 
 ---
 
-## 🏗️ Kiến Trúc Hệ Thống (System Architecture)
+## Kiến trúc
 
-```mermaid
-flowchart TD
-    A[📱 Mobile / Web User] -->|1. Upload Bulk Photos| B[Next.js App Router API]
-    B -->|2. Save Raw Images| C[(Supabase Storage)]
-    B -->|3. Save Document Status PENDING| D[(Supabase Postgres DB)]
-    B -->|4. Push Job into Queue| E[BullMQ Worker Queue / Redis]
-    
-    E -->|5. Fetch Image & Call Vision API| F[Google Gemini API]
-    F -->|6. Return OCR, Subject, Tags, LaTeX| E
-    
-    E -->|7. Generate Vector Embedding| G[Gemini Embedding API]
-    G -->|8. Store Metadata & pgvector| D
-    
-    E -->|9. Push Event Progress| H[SSE Service]
-    H -->|10. Live Status Update| A
+```
+┌─────────────────────┐
+│  React Native App   │
+│  (Expo + Camera)    │
+└────────┬────────────┘
+         │ upload ảnh / sync
+         ▼
+┌─────────────────────┐     ┌──────────────────────┐
+│     Supabase        │     │  AI Service (sau)    │
+│  - Auth             │────▶│  NestJS + BullMQ     │
+│  - PostgreSQL       │◀────│  + Gemini Vision     │
+│  - Storage (ảnh)    │     │  + SSE realtime      │
+│  - Realtime (chat)  │     └──────────────────────┘
+└─────────────────────┘
 ```
 
 ---
 
-## ✨ Tính Năng Nổi Bật (Key Features)
-
-### 1. 📷 Tải Lên Hàng Loạt & Phân Loại Tự Động (Batch Upload & Auto-Categorization)
-- Tải lên cùng lúc nhiều ảnh chụp từ lớp học.
-- AI Gemini tự động quét và phân môn học (Calculus, Physics, Organic Chemistry...), chương bài học và loại tài liệu.
-
-### 2. 🔤 OCR Công Thức LaTeX & Chữ Viết Tay (Formula & Handwriting Extraction)
-- Nhận diện công thức phức tạp thành định dạng LaTeX chuẩn: `\int_{a}^{b} f(x)dx`.
-- Trích xuất bảng dữ liệu thành Markdown Table.
-- Hỗ trợ chữ viết tay tiếng Việt và tiếng Anh.
-
-### 3. 🔍 Tìm Kiếm Thông Minh (Semantic Search with pgvector)
-- Tìm kiếm nội dung ảnh theo ý nghĩa bài học thay vì tên file.
-- Ví dụ: Tìm "Đồ thị dao động điều hòa" -> Hệ thống truy vấn Vector Similarity trong Supabase và trả về chính xác ảnh bài giảng liên quan.
-
-### 4. 🧠 Chat Với Giáo Trình & Tự Tạo Bài Ôn Luyện (AI Study Assistant)
-- **Ask AI:** "Giải thích từng bước bài giải trong ảnh này cho mình".
-- **Auto Flashcards:** Tự chuyển đổi các định nghĩa/công thức trong ảnh thành bộ thẻ ghi nhớ Flashcards (xuất file Anki hoặc học trực tiếp trên app).
-- **Quiz Generator:** Tự tạo 5 câu hỏi trắc nghiệm kiểm tra kiến thức dựa trên nội dung ảnh vừa chụp.
-
----
-
-## 🗄️ Thiết Kế Cơ Sở Dữ Liệu (Database Schema Preview)
+## Database Schema
 
 ```sql
--- Thư mục môn học
+-- Môn học
 CREATE TABLE subjects (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  name TEXT NOT NULL, -- e.g. "Giải tích 1", "Vật lý đại cương"
-  color_code TEXT,
+  name TEXT NOT NULL,        -- "Vật lý đại cương", "Giải tích 1"
+  color TEXT,                -- hex color để nhận diện nhanh
+  icon TEXT,                 -- emoji hoặc icon name
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Tài liệu / Bộ ảnh
-CREATE TABLE documents (
+-- Chương / buổi học trong 1 môn
+CREATE TABLE folders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,        -- "Chương 3: Điện học"
+  sort_order INT DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Ảnh chụp bài giảng
+CREATE TABLE photos (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL,
-  title TEXT NOT NULL,
-  doc_type TEXT, -- 'slide', 'textbook', 'whiteboard', 'exam', 'notes'
-  summary TEXT,
-  status TEXT DEFAULT 'pending', -- 'pending', 'processing', 'completed', 'failed'
+  folder_id UUID REFERENCES folders(id) ON DELETE SET NULL,
+  storage_path TEXT NOT NULL,    -- path trong Supabase Storage
+  thumbnail_path TEXT,           -- ảnh nén preview
+  note TEXT,                     -- ghi chú thêm
+  taken_at TIMESTAMPTZ NOT NULL, -- thời điểm chụp
+  sort_order INT DEFAULT 0,      -- thứ tự trong folder (kéo thả)
+  synced BOOLEAN DEFAULT FALSE,  -- đã upload lên cloud chưa
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Trang ảnh & Kết quả OCR Gemini
-CREATE TABLE document_pages (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  document_id UUID REFERENCES documents(id) ON DELETE CASCADE,
-  page_number INT NOT NULL,
-  image_url TEXT NOT NULL,
-  ocr_raw_text TEXT,
-  ocr_markdown TEXT,
-  latex_formulas JSONB,
-  embedding vector(768), -- pgvector cho Semantic Search
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
+-- RLS: mỗi user chỉ thấy data của mình
+ALTER TABLE subjects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE folders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE photos ENABLE ROW LEVEL SECURITY;
+
+-- Bảng mở rộng sau này (giai đoạn 3+)
+-- groups (id, name, invite_code, created_by)
+-- group_members (group_id, user_id, role)
+-- group_photos (group_id, photo_id, shared_by)
+-- photo_tags (photo_id, tagged_user_id)
+-- photo_comments (photo_id, user_id, content)
 ```
 
 ---
 
-## 🛠️ Hướng Dẫn Cài Đặt Cục Bộ (Local Setup Guide)
+## Lộ trình phát triển
 
-### 1. Prerequisite (Yêu cầu môi trường)
-- Node.js >= 18.x
-- Docker & Docker Compose (cho Redis)
-- Tài khoản Supabase & Google AI Studio (Gemini API Key)
+### Giai đoạn 0 — Setup (~1 tuần)
+- [ ] Tạo Expo project + Supabase project mới (tách riêng khỏi webapp)
+- [ ] Setup EAS Build → build APK test trên điện thoại thật (camera không test được trên emulator)
+- [ ] Wireframe 3 màn chính: Chụp ảnh → Chọn môn → Thư viện xem lại
+- [ ] Tạo database schema + RLS policies
 
-### 2. Clone Repository
+### Giai đoạn 1 — MVP: Chụp & Phân Loại (2-3 tuần) ⭐ Ưu tiên #1
+- [ ] **Camera capture** (`expo-camera`): chọn môn (chip màu) → chụp → ảnh tự lưu vào đúng môn
+- [ ] **Quản lý môn học**: CRUD, mỗi môn có màu + icon riêng
+- [ ] **Offline-first**: cache ảnh local trước, upload nền lên Supabase Storage (wifi/4G VN không ổn định)
+- [ ] **Thư viện xem lại**: lưới ảnh, lọc theo môn/ngày
+- [ ] **Auth**: Email hoặc Google login
+
+### Giai đoạn 2 — Hoàn thiện trải nghiệm
+- [ ] Folder/chương trong từng môn (VD: Vật lý → Chương 3: Điện học)
+- [ ] Kéo thả sắp xếp thứ tự ảnh
+- [ ] Export môn/chương thành PDF (ôn thi)
+- [ ] Nén ảnh trước khi upload
+
+### Giai đoạn 3 — Nhóm chat & chia sẻ
+- [ ] Tạo nhóm học bằng mã mời
+- [ ] Chia sẻ ảnh vào nhóm, tag bạn bè, bình luận
+- [ ] Supabase Realtime (không cần tự dựng WebSocket)
+
+### Giai đoạn 4 — AI phân tích ảnh
+- [ ] Tái sử dụng pipeline note-taking: ảnh → BullMQ → Gemini Vision → SSE
+- [ ] OCR bảng viết thành text tìm kiếm được
+- [ ] Tóm tắt tự động, tạo flashcard/quiz từ ảnh
+
+### Giai đoạn 5 — Lịch học
+- [ ] Thời khóa biểu → app tự gợi ý đúng môn khi chụp trong giờ tiết đó
+- [ ] Đồng bộ Google Calendar hoặc tự tạo TKB
+
+---
+
+## Cài đặt local
+
 ```bash
 git clone https://github.com/kiet-w/study.git
 cd study
-```
 
-### 3. Cấu hình biến môi trường (`.env.local`)
-```env
-# Next.js
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=https://your-supabase-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
-
-# Google Gemini API
-GEMINI_API_KEY=your-gemini-api-key
-
-# Redis & BullMQ
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=
-```
-
-### 4. Khởi chạy Redis & Cài đặt Dependencies
-```bash
-# Chạy Redis bằng Docker
-docker run -d --name study-redis -p 6379:6379 redis:alpine
-
-# Cài đặt gói phụ thuộc
+# Cài dependencies
 npm install
-# hoặc
-pnpm install
+
+# Chạy trên Expo Go (dev)
+npx expo start
+
+# Build APK test
+eas build -p android --profile preview
 ```
 
-### 5. Khởi chạy Ứng dụng & Worker Process
-```bash
-# Terminal 1: Run Next.js Dev Server
-npm run dev
-
-# Terminal 2: Run BullMQ Worker (Xử lý ảnh background)
-npm run worker
+### Biến môi trường (`.env`)
+```env
+EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
 ---
 
-## 🗺️ Lộ Trình Phát Triển (Roadmap)
+## Quyết định thiết kế đã chốt
 
-- [x] **Giai đoạn 1: Architecture & Pipeline Design** (Thiết kế database, cấu hình BullMQ + Gemini Vision)
-- [ ] **Giai đoạn 2: MVP Core** (Tải ảnh, Phân loại môn học tự động, Trích xuất OCR LaTeX)
-- [ ] **Giai đoạn 3: RAG & Search** (Tích hợp Supabase pgvector, Tìm kiếm ngữ nghĩa)
-- [ ] **Giai đoạn 4: Smart Assistant** (Hỏi đáp AI với ảnh giáo trình, Tự sinh Flashcards/Quiz)
-- [ ] **Giai đoạn 5: Mobile PWA & Offline Support** (Tối ưu trải nghiệm chụp ảnh trên smartphone)
+| Câu hỏi | Quyết định |
+|:---------|:-----------|
+| React Native/Expo hay Kotlin native? | **React Native + Expo** — tận dụng React đã biết, sau này ra iOS miễn phí |
+| Chung hay tách Supabase project? | **Tách riêng** — không lẫn dữ liệu với webapp |
+| Flow chụp: chọn môn trước hay sau? | **Chọn môn trước** — nhanh hơn lúc đang nghe giảng, giảm thao tác |
+| MVP nhanh hay kiến trúc kỹ? | **MVP nhanh** — tự dùng thử trước, mở rộng sau |
 
 ---
 
-## 📝 License
+## License
 
-Dự án được phân phối dưới giấy phép [MIT License](LICENSE).
+[MIT](LICENSE)
