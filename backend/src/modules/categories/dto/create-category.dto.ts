@@ -1,0 +1,29 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsInt, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+
+export class CreateCategoryDto {
+  @ApiProperty({ description: 'User ID (UUID)', example: '123e4567-e89b-12d3-a456-426614174000' })
+  @IsUUID()
+  @IsNotEmpty()
+  userId: string;
+
+  @ApiProperty({ description: 'Category name', example: 'Mathematics' })
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+
+  @ApiPropertyOptional({ description: 'Color hex code', example: '#FF5733' })
+  @IsString()
+  @IsOptional()
+  color?: string;
+
+  @ApiPropertyOptional({ description: 'Icon identifier', example: 'calculator' })
+  @IsString()
+  @IsOptional()
+  icon?: string;
+
+  @ApiPropertyOptional({ description: 'Sort order integer', example: 0, default: 0 })
+  @IsInt()
+  @IsOptional()
+  sortOrder?: number;
+}

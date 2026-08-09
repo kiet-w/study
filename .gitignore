@@ -33,6 +33,7 @@ files.zip
 scratch/
 tmp/
 temp/
+.superpowers/
 
 # IDE & OS files
 .DS_Store

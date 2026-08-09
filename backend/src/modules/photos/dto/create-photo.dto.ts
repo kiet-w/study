@@ -1,0 +1,59 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import {
+  IsBoolean,
+  IsDate,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
+
+export class CreatePhotoDto {
+  @ApiProperty({ description: 'User ID (UUID)', example: '123e4567-e89b-12d3-a456-426614174000' })
+  @IsUUID()
+  @IsNotEmpty()
+  userId: string;
+
+  @ApiProperty({ description: 'Storage path of the photo', example: 'photos/user1/photo1.jpg' })
+  @IsString()
+  @IsNotEmpty()
+  storagePath: string;
+
+  @ApiProperty({ description: 'Timestamp when photo was taken', example: '2026-08-09T10:00:00.000Z' })
+  @Type(() => Date)
+  @IsDate()
+  takenAt: Date;
+
+  @ApiPropertyOptional({ description: 'Category ID (UUID)', example: '123e4567-e89b-12d3-a456-426614174001' })
+  @IsOptional()
+  @IsUUID()
+  categoryId?: string;
+
+  @ApiPropertyOptional({ description: 'Topic ID (UUID)', example: '123e4567-e89b-12d3-a456-426614174002' })
+  @IsOptional()
+  @IsUUID()
+  topicId?: string;
+
+  @ApiPropertyOptional({ description: 'Thumbnail storage path', example: 'thumbnails/user1/photo1_thumb.jpg' })
+  @IsOptional()
+  @IsString()
+  thumbnailPath?: string;
+
+  @ApiPropertyOptional({ description: 'Optional note for the photo', example: 'Lecture slide 3' })
+  @IsOptional()
+  @IsString()
+  note?: string;
+
+  @ApiPropertyOptional({ description: 'Sort order integer', example: 0, default: 0 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  sortOrder?: number;
+
+  @ApiPropertyOptional({ description: 'Sync status boolean', example: true, default: false })
+  @IsOptional()
+  @IsBoolean()
+  synced?: boolean;
+}

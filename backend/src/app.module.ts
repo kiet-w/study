@@ -1,18 +1,24 @@
-import { Router } from 'express';
-import userRoutes from './modules/users/routes/user.routes';
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { PrismaModule } from './shared/prisma/prisma.module';
+import { HealthModule } from './modules/health/health.module';
+import { UsersModule } from './modules/users/users.module';
+import { CategoriesModule } from './modules/categories/categories.module';
+import { TopicsModule } from './modules/topics/topics.module';
+import { PhotosModule } from './modules/photos/photos.module';
 
-const appRouter = Router();
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+    PrismaModule,
+    HealthModule,
+    UsersModule,
+    CategoriesModule,
+    TopicsModule,
+    PhotosModule,
+  ],
+})
+export class AppModule {}
 
-/**
- * Main application module router.
- * Aggregates all feature module routes under the central router.
- */
-
-// User module routes -> /api/users
-appRouter.use('/users', userRoutes);
-
-// Future module routes can be registered here cleanly:
-// appRouter.use('/subjects', subjectRoutes);
-// appRouter.use('/photos', photoRoutes);
-
-export default appRouter;

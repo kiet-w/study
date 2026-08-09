@@ -29,7 +29,7 @@
 ```
 Stack:
   Mobile   → React Native + Expo 52 (TypeScript, Expo Router)
-  Backend  → Supabase (Auth + PostgreSQL + Storage + Realtime)
+  Backend  → NestJS (TypeScript, Prisma ORM, Supabase PostgreSQL)
   Styling  → NativeWind (Tailwind syntax trên React Native)
   State    → Zustand (persist qua AsyncStorage)
   AI (sau) → NestJS + BullMQ + Redis + Gemini Vision API (Phase 4)
@@ -86,20 +86,17 @@ study/
 │       ├── lib/                 # supabase.ts 🔴, subjectService, formatters
 │       └── types/               # Frontend interfaces
 │
-├── backend/                     # Express TypeScript Backend Server
+├── backend/                     # NestJS Backend Server (TypeScript, Prisma ORM)
 │   ├── package.json
 │   ├── tsconfig.json
+│   ├── nest-cli.json
 │   ├── prisma/                  # Prisma ORM schema
 │   │   └── schema.prisma
 │   └── src/
-│       ├── app.ts               # Express configuration
-│       ├── index.ts             # Server entrypoint
-│       ├── config/              # Environment config
-│       ├── controllers/         # User Controller (createUser, getUsers)
-│       ├── middleware/          # validate & errorHandler
-│       ├── routes/              # Express routes (/api/users)
-│       ├── services/            # User Service business logic
-│       └── types/               # User DTOs
+│       ├── main.ts              # Entry point (NestFactory, Swagger, ValidationPipe)
+│       ├── app.module.ts        # Root Module
+│       ├── modules/             # Feature modules (users, etc.)
+│       └── shared/              # Shared module & services (PrismaService, etc.)
 
 │   │   ├── capture-photo/       ← Logic chụp + gắn môn
 │   │   ├── manage-subjects/     ← CRUD môn học

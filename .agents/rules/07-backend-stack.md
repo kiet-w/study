@@ -1,9 +1,39 @@
-# Rule 07 — Backend Tech Stack (Supabase + AI Service)
+# Rule 07 — Backend Tech Stack (NestJS + Prisma ORM + Supabase)
 
-> Đọc khi: setup Supabase, viết migration, hoặc setup AI service (Phase 4+).  
+> Đọc khi: phát triển NestJS API backend (`backend/`), setup Prisma ORM, Supabase DB, hoặc AI service (Phase 4+).  
 > Nguồn sự thật chi tiết: `docs/02-backend-supabase/`
 
 ---
+
+## Phần 0: NestJS Backend Architecture (`backend/`)
+
+### Architecture Overview
+Backend được xây dựng bằng **NestJS** (TypeScript) kết hợp **Prisma ORM** tương tác với Supabase PostgreSQL database.
+
+```
+backend/
+├── src/
+│   ├── main.ts              # Entrypoint app, ValidationPipe, Swagger setup
+│   ├── app.module.ts        # Root AppModule
+│   ├── shared/              # Shared module (PrismaModule, PrismaService)
+│   │   ├── prisma/
+│   │   │   ├── prisma.module.ts
+│   │   │   └── prisma.service.ts
+│   └── modules/             # Feature modules
+│       └── users/           # UsersModule, UsersController, UsersService, DTOs
+├── prisma/
+│   └── schema.prisma        # Database schema definitions
+├── nest-cli.json            # Nest CLI config
+├── tsconfig.json            # TypeScript compiler config với decorators
+└── package.json             # NestJS & Prisma dependencies
+```
+
+### Core Patterns & Standard Principles
+1. **Dependency Injection & Modular Structure**: Tất cả các module phải được đóng gói độc lập trong `src/modules/` và import `PrismaModule` từ `shared/prisma/`.
+2. **DTO & Validation**: Dùng `class-validator` và `class-transformer` trên DTOs, kích hoạt `ValidationPipe` toàn cục trong `main.ts` (`whitelist: true, transform: true`).
+3. **API Documentation**: Sử dụng `@nestjs/swagger` để tự động tạo tài liệu API tại route `/api/docs`.
+4. **Environment Configuration**: Dùng `@nestjs/config` để quản lý biến môi trường (`.env`).
+
 
 ## Phần 1: Supabase (Phase 0–3)
 
