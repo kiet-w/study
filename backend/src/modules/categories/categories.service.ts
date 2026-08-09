@@ -43,9 +43,12 @@ export class CategoriesService {
     });
   }
 
-  async findOne(id: string) {
-    const category = await this.prisma.category.findUnique({
-      where: { id },
+  async findOne(id: string, userId?: string) {
+    const category = await this.prisma.category.findFirst({
+      where: {
+        id,
+        ...(userId && { userId }),
+      },
       include: {
         topics: {
           orderBy: { sortOrder: 'asc' },
@@ -66,8 +69,8 @@ export class CategoriesService {
     return category;
   }
 
-  async update(id: string, updateCategoryDto: UpdateCategoryDto) {
-    await this.findOne(id);
+  async update(id: string, updateCategoryDto: UpdateCategoryDto, userId?: string) {
+    await this.findOne(id, userId);
     return this.prisma.category.update({
       where: { id },
       data: updateCategoryDto,
@@ -83,11 +86,12 @@ export class CategoriesService {
     });
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(id: string, userId?: string) {
+    await this.findOne(id, userId);
     return this.prisma.category.delete({
       where: { id },
     });
   }
 }
+
 

@@ -39,28 +39,39 @@ export class TopicsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get topic by ID' })
+  @ApiQuery({ name: 'userId', required: false, type: String, description: 'Filter by user ID' })
   @ApiResponse({ status: 200, description: 'Topic details.' })
   @ApiResponse({ status: 404, description: 'Topic not found.' })
-  async findOne(@Param('id') id: string) {
-    return this.topicsService.findOne(id);
+  async findOne(
+    @Param('id') id: string,
+    @Query('userId') userId?: string,
+  ) {
+    return this.topicsService.findOne(id, userId);
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update a topic' })
+  @ApiQuery({ name: 'userId', required: false, type: String, description: 'Filter by user ID' })
   @ApiResponse({ status: 200, description: 'Topic updated successfully.' })
   @ApiResponse({ status: 404, description: 'Topic not found.' })
   async update(
     @Param('id') id: string,
     @Body() updateTopicDto: UpdateTopicDto,
+    @Query('userId') userId?: string,
   ) {
-    return this.topicsService.update(id, updateTopicDto);
+    return this.topicsService.update(id, updateTopicDto, userId);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a topic' })
+  @ApiQuery({ name: 'userId', required: false, type: String, description: 'Filter by user ID' })
   @ApiResponse({ status: 200, description: 'Topic deleted successfully.' })
   @ApiResponse({ status: 404, description: 'Topic not found.' })
-  async remove(@Param('id') id: string) {
-    return this.topicsService.remove(id);
+  async remove(
+    @Param('id') id: string,
+    @Query('userId') userId?: string,
+  ) {
+    return this.topicsService.remove(id, userId);
   }
 }
+

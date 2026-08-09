@@ -154,9 +154,12 @@ export class PhotosService {
     };
   }
 
-  async findOne(id: string) {
-    const photo = await this.prisma.photo.findUnique({
-      where: { id },
+  async findOne(id: string, userId?: string) {
+    const photo = await this.prisma.photo.findFirst({
+      where: {
+        id,
+        ...(userId && { userId }),
+      },
       include: {
         category: true,
         topic: true,
@@ -170,8 +173,8 @@ export class PhotosService {
     return photo;
   }
 
-  async update(id: string, updatePhotoDto: UpdatePhotoDto) {
-    await this.findOne(id);
+  async update(id: string, updatePhotoDto: UpdatePhotoDto, userId?: string) {
+    await this.findOne(id, userId);
     return this.prisma.photo.update({
       where: { id },
       data: updatePhotoDto,
@@ -182,11 +185,12 @@ export class PhotosService {
     });
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(id: string, userId?: string) {
+    await this.findOne(id, userId);
     return this.prisma.photo.delete({
       where: { id },
     });
   }
 }
+
 

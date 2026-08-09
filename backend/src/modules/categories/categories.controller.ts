@@ -34,29 +34,40 @@ export class CategoriesController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get category details by ID' })
+  @ApiOperation({ summary: 'Get category details by ID with optional userId filter' })
+  @ApiQuery({ name: 'userId', required: false, type: String, description: 'User ID filter' })
   @ApiResponse({ status: 200, description: 'Category details.' })
   @ApiResponse({ status: 404, description: 'Category not found.' })
-  async findOne(@Param('id') id: string) {
-    return this.categoriesService.findOne(id);
+  async findOne(
+    @Param('id') id: string,
+    @Query('userId') userId?: string,
+  ) {
+    return this.categoriesService.findOne(id, userId);
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update a category' })
+  @ApiQuery({ name: 'userId', required: false, type: String, description: 'User ID filter' })
   @ApiResponse({ status: 200, description: 'Category updated successfully.' })
   @ApiResponse({ status: 404, description: 'Category not found.' })
   async update(
     @Param('id') id: string,
     @Body() updateCategoryDto: UpdateCategoryDto,
+    @Query('userId') userId?: string,
   ) {
-    return this.categoriesService.update(id, updateCategoryDto);
+    return this.categoriesService.update(id, updateCategoryDto, userId);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a category' })
+  @ApiQuery({ name: 'userId', required: false, type: String, description: 'User ID filter' })
   @ApiResponse({ status: 200, description: 'Category deleted successfully.' })
   @ApiResponse({ status: 404, description: 'Category not found.' })
-  async remove(@Param('id') id: string) {
-    return this.categoriesService.remove(id);
+  async remove(
+    @Param('id') id: string,
+    @Query('userId') userId?: string,
+  ) {
+    return this.categoriesService.remove(id, userId);
   }
 }
+
