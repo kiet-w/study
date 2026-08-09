@@ -3,15 +3,42 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { CreatePhotoDto } from './dto/create-photo.dto';
 import { UpdatePhotoDto } from './dto/update-photo.dto';
-import { QueryPhotosDto } from './dto/query-photos.dto';
+import { QueryPhotosDto, PhotoSortBy, SortOrder } from './dto/query-photos.dto';
+import { BatchSyncPhotosDto } from './dto/batch-sync-photos.dto';
 
 @Injectable()
 export class PhotosService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createPhotoDto: CreatePhotoDto) {
+    const data = {
+      ...createPhotoDto,
+      synced: createPhotoDto.synced ?? true,
+    };
+
+    if (createPhotoDto.id) {
+      return this.prisma.photo.upsert({
+        where: { id: createPhotoDto.id },
+        create: data,
+        update: {
+          categoryId: data.categoryId,
+          topicId: data.topicId,
+          storagePath: data.storagePath,
+          thumbnailPath: data.thumbnailPath,
+          note: data.note,
+          takenAt: data.takenAt,
+          sortOrder: data.sortOrder,
+          synced: true,
+        },
+        include: {
+          category: true,
+          topic: true,
+        },
+      });
+    }
+
     return this.prisma.photo.create({
-      data: createPhotoDto,
+      data,
       include: {
         category: true,
         topic: true,
@@ -19,8 +46,66 @@ export class PhotosService {
     });
   }
 
+  async batchSync(batchDto: BatchSyncPhotosDto) {
+    const results = await this.prisma.$transaction(
+      batchDto.photos.map((photoDto) => {
+        const data = {
+          ...photoDto,
+          synced: true,
+        };
+
+        if (photoDto.id) {
+          return this.prisma.photo.upsert({
+            where: { id: photoDto.id },
+            create: data,
+            update: {
+              categoryId: data.categoryId,
+              topicId: data.topicId,
+              storagePath: data.storagePath,
+              thumbnailPath: data.thumbnailPath,
+              note: data.note,
+              takenAt: data.takenAt,
+              sortOrder: data.sortOrder,
+              synced: true,
+            },
+            include: {
+              category: true,
+              topic: true,
+            },
+          });
+        }
+
+        return this.prisma.photo.create({
+          data,
+          include: {
+            category: true,
+            topic: true,
+          },
+        });
+      }),
+    );
+
+    return {
+      syncedCount: results.length,
+      items: results,
+    };
+  }
+
   async findAll(queryDto: QueryPhotosDto) {
-    const { userId, categoryId, topicId, synced, page = 1, limit = 20 } = queryDto;
+    const {
+      userId,
+      categoryId,
+      topicId,
+      synced,
+      search,
+      startDate,
+      endDate,
+      sortBy = PhotoSortBy.TAKEN_AT,
+      order = SortOrder.DESC,
+      page = 1,
+      limit = 20,
+    } = queryDto;
+
     const skip = (page - 1) * limit;
 
     const where: Prisma.PhotoWhereInput = {
@@ -28,6 +113,22 @@ export class PhotosService {
       ...(categoryId && { categoryId }),
       ...(topicId && { topicId }),
       ...(synced !== undefined && { synced }),
+      ...(search && {
+        note: {
+          contains: search,
+          mode: 'insensitive',
+        },
+      }),
+      ...((startDate || endDate) && {
+        takenAt: {
+          ...(startDate && { gte: startDate }),
+          ...(endDate && { lte: endDate }),
+        },
+      }),
+    };
+
+    const orderBy: Prisma.PhotoOrderByWithRelationInput = {
+      [sortBy]: order,
     };
 
     const [items, total] = await Promise.all([
@@ -35,7 +136,7 @@ export class PhotosService {
         where,
         skip,
         take: limit,
-        orderBy: { takenAt: 'desc' },
+        orderBy,
         include: {
           category: true,
           topic: true,
@@ -49,6 +150,7 @@ export class PhotosService {
       total,
       page,
       limit,
+      totalPages: Math.ceil(total / limit),
     };
   }
 
@@ -87,3 +189,4 @@ export class PhotosService {
     });
   }
 }
+

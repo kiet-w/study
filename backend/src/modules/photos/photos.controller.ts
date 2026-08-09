@@ -13,6 +13,7 @@ import { PhotosService } from './photos.service';
 import { CreatePhotoDto } from './dto/create-photo.dto';
 import { UpdatePhotoDto } from './dto/update-photo.dto';
 import { QueryPhotosDto } from './dto/query-photos.dto';
+import { BatchSyncPhotosDto } from './dto/batch-sync-photos.dto';
 
 @ApiTags('photos')
 @Controller('photos')
@@ -20,14 +21,21 @@ export class PhotosController {
   constructor(private readonly photosService: PhotosService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Create a new photo record' })
-  @ApiResponse({ status: 201, description: 'Photo created successfully.' })
+  @ApiOperation({ summary: 'Create or upsert a photo record' })
+  @ApiResponse({ status: 201, description: 'Photo created/upserted successfully.' })
   async create(@Body() createPhotoDto: CreatePhotoDto) {
     return this.photosService.create(createPhotoDto);
   }
 
+  @Post('sync')
+  @ApiOperation({ summary: 'Batch sync offline photos queue' })
+  @ApiResponse({ status: 201, description: 'Batch photos synced successfully.' })
+  async batchSync(@Body() batchSyncPhotosDto: BatchSyncPhotosDto) {
+    return this.photosService.batchSync(batchSyncPhotosDto);
+  }
+
   @Get()
-  @ApiOperation({ summary: 'Get photos with pagination and filters' })
+  @ApiOperation({ summary: 'Get photos with pagination, filtering, search and sorting' })
   @ApiResponse({ status: 200, description: 'Paginated list of photos.' })
   async findAll(@Query() queryDto: QueryPhotosDto) {
     return this.photosService.findAll(queryDto);
@@ -60,3 +68,4 @@ export class PhotosController {
     return this.photosService.remove(id);
   }
 }
+

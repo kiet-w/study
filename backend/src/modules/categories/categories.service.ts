@@ -8,6 +8,18 @@ export class CategoriesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createCategoryDto: CreateCategoryDto) {
+    if (createCategoryDto.id) {
+      return this.prisma.category.upsert({
+        where: { id: createCategoryDto.id },
+        create: createCategoryDto,
+        update: {
+          name: createCategoryDto.name,
+          color: createCategoryDto.color,
+          icon: createCategoryDto.icon,
+          sortOrder: createCategoryDto.sortOrder,
+        },
+      });
+    }
     return this.prisma.category.create({
       data: createCategoryDto,
     });
@@ -16,7 +28,18 @@ export class CategoriesService {
   async findAll(userId?: string) {
     return this.prisma.category.findMany({
       where: userId ? { userId } : {},
-      orderBy: { sortOrder: 'asc' },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+      include: {
+        topics: {
+          orderBy: { sortOrder: 'asc' },
+        },
+        _count: {
+          select: {
+            topics: true,
+            photos: true,
+          },
+        },
+      },
     });
   }
 
@@ -24,7 +47,15 @@ export class CategoriesService {
     const category = await this.prisma.category.findUnique({
       where: { id },
       include: {
-        topics: true,
+        topics: {
+          orderBy: { sortOrder: 'asc' },
+        },
+        _count: {
+          select: {
+            topics: true,
+            photos: true,
+          },
+        },
       },
     });
 
@@ -40,6 +71,15 @@ export class CategoriesService {
     return this.prisma.category.update({
       where: { id },
       data: updateCategoryDto,
+      include: {
+        topics: true,
+        _count: {
+          select: {
+            topics: true,
+            photos: true,
+          },
+        },
+      },
     });
   }
 
@@ -50,3 +90,4 @@ export class CategoriesService {
     });
   }
 }
+

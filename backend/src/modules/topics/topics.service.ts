@@ -8,6 +8,19 @@ export class TopicsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createTopicDto: CreateTopicDto) {
+    if (createTopicDto.id) {
+      return this.prisma.topic.upsert({
+        where: { id: createTopicDto.id },
+        create: createTopicDto,
+        update: {
+          categoryId: createTopicDto.categoryId,
+          name: createTopicDto.name,
+          color: createTopicDto.color,
+          icon: createTopicDto.icon,
+          sortOrder: createTopicDto.sortOrder,
+        },
+      });
+    }
     return this.prisma.topic.create({
       data: createTopicDto,
     });
@@ -19,9 +32,12 @@ export class TopicsService {
         ...(userId && { userId }),
         ...(categoryId && { categoryId }),
       },
-      orderBy: { sortOrder: 'asc' },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
       include: {
         category: true,
+        _count: {
+          select: { photos: true },
+        },
       },
     });
   }
@@ -31,6 +47,9 @@ export class TopicsService {
       where: { id },
       include: {
         category: true,
+        _count: {
+          select: { photos: true },
+        },
       },
     });
 
@@ -46,6 +65,12 @@ export class TopicsService {
     return this.prisma.topic.update({
       where: { id },
       data: updateTopicDto,
+      include: {
+        category: true,
+        _count: {
+          select: { photos: true },
+        },
+      },
     });
   }
 
@@ -56,3 +81,4 @@ export class TopicsService {
     });
   }
 }
+

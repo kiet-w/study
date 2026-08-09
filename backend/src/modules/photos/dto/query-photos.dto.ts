@@ -1,6 +1,17 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
-import { IsBoolean, IsInt, IsOptional, IsUUID, Max, Min } from 'class-validator';
+import { IsBoolean, IsDate, IsEnum, IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
+
+export enum PhotoSortBy {
+  TAKEN_AT = 'takenAt',
+  CREATED_AT = 'createdAt',
+  SORT_ORDER = 'sortOrder',
+}
+
+export enum SortOrder {
+  ASC = 'asc',
+  DESC = 'desc',
+}
 
 export class QueryPhotosDto {
   @ApiPropertyOptional({ description: 'Filter by User ID (UUID)' })
@@ -28,6 +39,33 @@ export class QueryPhotosDto {
   @IsBoolean()
   synced?: boolean;
 
+  @ApiPropertyOptional({ description: 'Search photos by note content' })
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @ApiPropertyOptional({ description: 'Filter by takenAt start date' })
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  startDate?: Date;
+
+  @ApiPropertyOptional({ description: 'Filter by takenAt end date' })
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  endDate?: Date;
+
+  @ApiPropertyOptional({ description: 'Sort by field', enum: PhotoSortBy, default: PhotoSortBy.TAKEN_AT })
+  @IsOptional()
+  @IsEnum(PhotoSortBy)
+  sortBy?: PhotoSortBy = PhotoSortBy.TAKEN_AT;
+
+  @ApiPropertyOptional({ description: 'Sort direction', enum: SortOrder, default: SortOrder.DESC })
+  @IsOptional()
+  @IsEnum(SortOrder)
+  order?: SortOrder = SortOrder.DESC;
+
   @ApiPropertyOptional({ description: 'Page number', default: 1, example: 1 })
   @IsOptional()
   @Type(() => Number)
@@ -43,3 +81,4 @@ export class QueryPhotosDto {
   @Max(100)
   limit?: number = 20;
 }
+
