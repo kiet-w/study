@@ -2,19 +2,30 @@
 
 Nguồn sự thật duy nhất cho schema — mọi thay đổi bảng phải cập nhật ở đây trước khi code.
 
-## Giai đoạn 1 (MVP — Categories & Photos)
+## Giai đoạn 1 (MVP — Users, Categories & Photos)
 
 ```sql
+-- Người dùng / User profile
+create table users (
+  id uuid primary key default gen_random_uuid(),
+  email text unique not null,
+  full_name text,
+  avatar_url text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
 -- Môn học / Danh mục
 create table categories (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users(id) on delete cascade not null,
+  user_id uuid references users(id) on delete cascade not null,
   name text not null,
   color text,                  -- hex code, hiển thị chip
   icon text,                   -- tên icon hoặc emoji
   sort_order int default 0,
   created_at timestamptz default now()
 );
+
 
 -- Ảnh bài giảng
 create table photos (

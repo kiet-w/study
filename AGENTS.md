@@ -101,11 +101,10 @@ study/
 │       │   ├── filters/              # Global HttpExceptionFilter
 │       │   └── interceptors/         # Global TransformInterceptor
 │       └── modules/                  # Feature Modules (Controllers, Services, DTOs)
+│           ├── users/                # UsersModule (User profile & account management)
 │           ├── categories/           # CategoriesModule (CRUD môn học)
 │           ├── topics/               # TopicsModule (CRUD chương/chủ đề)
-│           ├── photos/               # PhotosModule (Quản lý ảnh & sync status)
-│           ├── users/                # UsersModule (User profile management)
-│           └── health/               # HealthModule (GET /api/health)
+│           └── photos/               # PhotosModule (Quản lý ảnh & batch sync status)
 │
 └── supabase/
     └── migrations/                   # SQL migration scripts
@@ -116,11 +115,13 @@ study/
 ## 3. Types & Schema Mẫu
 
 ### Prisma Schema (`backend/prisma/schema.prisma`)
+- `User` (người dùng): `{ id, email, fullName, avatarUrl, createdAt, updatedAt }`
 - `Category` (môn học): `{ id, userId, name, color, icon, sortOrder, createdAt }`
 - `Topic` (chương): `{ id, userId, categoryId, name, color, icon, sortOrder, createdAt }`
 - `Photo` (ảnh bài giảng): `{ id, userId, categoryId, topicId, storagePath, thumbnailPath, note, takenAt, sortOrder, synced, createdAt }`
 
 ### Frontend Types (`frontend/src/types/index.ts`)
+- `User` (người dùng): `{ id, email, full_name?: string, avatar_url?: string, created_at: string, updated_at: string }`
 - `Category` (môn học): `{ id, user_id, name, color, icon, sort_order, created_at }`
 - `Topic` (chương/chủ đề): `{ id, user_id, category_id, name, color, icon, sort_order, created_at }`
 - `Photo` (ảnh bài giảng): `{ id, user_id, category_id, topic_id, storage_path, thumbnail_path, note, taken_at, sort_order, synced, created_at }`
@@ -145,10 +146,13 @@ study/
 
 ## 5. Nguyên Tắc Import & Kiến Trúc Code
 
-### Backend (NestJS Architecture)
+### Backend (NestJS Architecture & Data Isolation)
 - Luồng phụ thuộc: `Route → Controller → Service → PrismaService (Database)`
 - Tất cả DTOs bắt buộc dùng `class-validator` và `@nestjs/swagger` decorators.
 - Service nhận và trả về dữ liệu qua DTO / Prisma Models, không xử lý trực tiếp HTTP Request/Response objects (`req`, `res`).
+- **🔴 QUY TẮC CÔ LẬP DỮ LIỆU NGƯỜI DÙNG (USER DATA ISOLATION):**
+  - Mọi query (`findFirst`, `findMany`, `update`, `delete`) trên `Category`, `Topic`, `Photo` BẮT BUỘC lọc theo `userId` (`where: { id, userId }`).
+  - Người dùng A tuyệt đối KHÔNG thể truy cập, sửa hoặc xóa dữ liệu của Người dùng B. Nếu id không khớp `userId`, service phải ném `NotFoundException` (404).
 
 ### Frontend (Feature-Sliced Design)
 - Luồng phụ thuộc: `app/ → screens/ → widgets/ → features/ → entities/ → shared/`
@@ -158,10 +162,11 @@ study/
 
 ## 6. Lộ Trình Phát Triển (Phase Gates Summary)
 
-- **Phase 1 (MVP — ĐANG LÀM):** React Native Mobile App + NestJS REST API + Supabase PostgreSQL (Categories, Photos, Sync, Auth).
+- **Phase 1 (MVP — ĐANG LÀM):** React Native Mobile App + NestJS REST API + Supabase PostgreSQL (Users, Categories, Topics, Photos, Sync, Auth).
 - **Phase 2 (UX):** Topics/Folders, Kéo thả sắp xếp, Export PDF.
 - **Phase 3 (Social):** Nhóm học tập, Chia sẻ ảnh, Supabase Realtime Chat.
 - **Phase 4 (AI):** NestJS + BullMQ + Redis + Gemini Vision API (OCR bảng, tóm tắt bài giảng).
 - **Phase 5 (Calendar):** Lịch học `class_sessions`, tự động gợi ý môn học khi chụp trong giờ.
 
 → Chi tiết: `.agents/rules/05-phase-gates.md`
+

@@ -15,9 +15,16 @@ Backend được thiết kế theo chuẩn **NestJS Modular Architecture** với
 backend/
 ├── src/
 │   ├── main.ts                       # Entrypoint app: NestFactory, ValidationPipe, Swagger, CORS
-│   ├── app.module.ts                 # Root AppModule: Import Config, Prisma, Health, Feature modules
+│   ├── app.module.ts                 # Root AppModule: Import Config, Prisma, Feature modules
 │   │
 │   ├── modules/                      # Feature modules độc lập (FSD backend style)
+│   │   ├── users/                    # Quản lý thông tin user profile & account (UsersModule)
+│   │   │   ├── users.module.ts
+│   │   │   ├── users.controller.ts
+│   │   │   ├── users.service.ts
+│   │   │   └── dto/
+│   │   │       ├── create-user.dto.ts
+│   │   │       └── update-user.dto.ts
 │   │   ├── categories/               # Quản lý danh mục/môn học (CategoriesModule)
 │   │   │   ├── categories.module.ts
 │   │   │   ├── categories.controller.ts
@@ -32,23 +39,15 @@ backend/
 │   │   │   └── dto/
 │   │   │       ├── create-topic.dto.ts
 │   │   │       └── update-topic.dto.ts
-│   │   ├── photos/                   # Quản lý ảnh bài giảng (PhotosModule)
-│   │   │   ├── photos.module.ts
-│   │   │   ├── photos.controller.ts
-│   │   │   ├── photos.service.ts
-│   │   │   └── dto/
-│   │   │       ├── create-photo.dto.ts
-│   │   │       ├── update-photo.dto.ts
-│   │   │       └── query-photos.dto.ts
-│   │   ├── users/                    # Quản lý thông tin user profile (UsersModule)
-│   │   │   ├── users.module.ts
-│   │   │   ├── users.controller.ts
-│   │   │   ├── users.service.ts
-│   │   │   └── dto/
-│   │   │       └── create-user.dto.ts
-│   │   └── health/                   # Endpoint kiểm tra sức khỏe hệ thống (`GET /api/health`)
-│   │       ├── health.module.ts
-│   │       └── health.controller.ts
+│   │   └── photos/                   # Quản lý ảnh bài giảng & sync status (PhotosModule)
+│   │       ├── photos.module.ts
+│   │       ├── photos.controller.ts
+│   │       ├── photos.service.ts
+│   │       └── dto/
+│   │           ├── create-photo.dto.ts
+│   │           ├── update-photo.dto.ts
+│   │           ├── query-photos.dto.ts
+│   │           └── batch-sync-photos.dto.ts
 │   │
 │   └── shared/                       # Shared modules, Interceptors, Filters, Types
 │       ├── prisma/
@@ -123,17 +122,18 @@ backend/
 ## Phần 2: Prisma ORM Standard Practices (`backend/prisma/schema.prisma`)
 
 ### 1. Quy tắc đặt tên Schema & Mapping
-- Tên Model dùng `PascalCase` (`Category`, `Topic`, `Photo`).
-- Bảng Database PostgreSQL dùng `snake_case` thông qua `@@map("table_name")` (`@map("categories")`, `@map("photos")`).
+- Tên Model dùng `PascalCase` (`User`, `Category`, `Topic`, `Photo`).
+- Bảng Database PostgreSQL dùng `snake_case` thông qua `@@map("table_name")` (`@map("users")`, `@map("categories")`, `@map("photos")`).
 - Tên trường trong DB dùng `@map("user_id")`, `@map("created_at")` để giữ sự tương thích với Supabase SQL schema.
 
 ### 2. UUID & Primary Keys
 - Sử dụng UUID mặc định phát sinh từ PostgreSQL:
   `id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid`
 
-### 3. Tránh xung đột với Supabase Auth
-- **KHÔNG** tạo model `User` trong Prisma nếu gây lệch với `auth.users` của Supabase.
-- Lưu `userId String @map("user_id") @db.Uuid` trên các bảng `Category`, `Topic`, `Photo` và đánh chỉ mục `@@index([userId])`.
+### 3. Quan hệ User 1-N & Database Mapping
+- Model `User` liên kết 1-N với `Category`, `Topic`, `Photo`.
+- Khai báo FK `userId String @map("user_id") @db.Uuid` trên các bảng và thiết lập `user User @relation(fields: [userId], references: [id], onDelete: Cascade)`.
+- Đánh chỉ mục `@@index([userId])` trên các bảng con để tối ưu hóa truy vấn theo người dùng.
 
 ---
 
@@ -173,3 +173,26 @@ npm run dev
 # 5. Truy cập Swagger API Documentation
 # http://localhost:3000/api/docs
 ```
+
+---
+
+## Phần 5: Quy Tắc Cô Lập Dữ Liệu Người Dùng (User Data Isolation Rule)
+
+1. **Nguyên tắc cốt lõi:** Người dùng A **tuyệt đối không được phép đọc, sửa, hoặc xóa** dữ liệu của Người dùng B.
+2. **Implementation trong Service:**
+   - Khi tìm kiếm đơn lẻ (`findOne`), cập nhật (`update`), hoặc xóa (`remove`), **luôn luôn truyền và lọc theo `userId`**:
+     ```ts
+     // ✅ BẮT BUỘC: Lọc kết hợp id và userId
+     const category = await this.prisma.category.findFirst({
+       where: {
+         id,
+         ...(userId && { userId }),
+       },
+     });
+     if (!category) throw new NotFoundException(`Category with ID ${id} not found`);
+     ```
+   - Nếu `id` không thuộc sở hữu của `userId` được truyền lên, service sẽ ném `NotFoundException` (trả về lỗi HTTP 404).
+3. **Implementation trong Controller:**
+   - Nhận `userId` qua query param hoặc Auth Token Decorator và truyền xuống Service.
+   - Thêm decorator `@ApiQuery({ name: 'userId', required: false })` trong Swagger documentation.
+
