@@ -144,14 +144,15 @@ ALTER TABLE photos ENABLE ROW LEVEL SECURITY;
 git clone https://github.com/kiet-w/study.git
 cd study
 
-# Cài dependencies
+# 1. Frontend (Expo React Native)
+cd frontend
 npm install
+npm start
 
-# Chạy trên Expo Go (dev)
-npx expo start
-
-# Build APK test
-eas build -p android --profile preview
+# 2. Backend (Express API)
+cd backend
+npm install
+npm run dev
 ```
 
 ### Biến môi trường (`.env`)

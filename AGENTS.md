@@ -77,27 +77,30 @@ study/
 │       ├── photo-upload.md
 │       └── auth-flow.md
 │
-├── app/                         ← Expo Router (THIN — chỉ routing, không logic)
-│   ├── (auth)/
-│   │   └── login.tsx
-│   ├── (tabs)/
-│   │   ├── capture.tsx          ← Chụp ảnh
-│   │   ├── library.tsx          ← Thư viện xem lại
-│   │   └── subjects.tsx         ← Quản lý môn học
-│   └── _layout.tsx              ← 🔴 CRITICAL: auth guard + root layout
+├── frontend/                    ← React Native / Expo Frontend App
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── src/
+│       ├── components/          # UI Components
+│       ├── hooks/               # Custom hooks
+│       ├── lib/                 # supabase.ts 🔴, subjectService, formatters
+│       └── types/               # Frontend interfaces
 │
-├── src/
-│   ├── shared/                  ← Không có business logic, dùng khắp nơi
-│   │   ├── ui/atoms/            ← Button, Chip, Icon, ...
-│   │   ├── ui/molecules/        ← SubjectChip, PhotoThumbnail, ...
-│   │   ├── lib/                 ← supabase.ts 🔴, storage.ts, formatters
-│   │   └── config/              ← constants.ts, env
-│   │
-│   ├── entities/                ← Type + API call thuần (ít/không UI)
-│   │   ├── subject/             ← Subject type, subjectApi (CRUD)
-│   │   └── photo/               ← Photo type, photoApi
-│   │
-│   ├── features/                ← 1 tính năng = 1 folder, độc lập nhau
+├── backend/                     # Express TypeScript Backend Server
+│   ├── package.json
+│   ├── tsconfig.json
+│   ├── prisma/                  # Prisma ORM schema
+│   │   └── schema.prisma
+│   └── src/
+│       ├── app.ts               # Express configuration
+│       ├── index.ts             # Server entrypoint
+│       ├── config/              # Environment config
+│       ├── controllers/         # User Controller (createUser, getUsers)
+│       ├── middleware/          # validate & errorHandler
+│       ├── routes/              # Express routes (/api/users)
+│       ├── services/            # User Service business logic
+│       └── types/               # User DTOs
+
 │   │   ├── capture-photo/       ← Logic chụp + gắn môn
 │   │   ├── manage-subjects/     ← CRUD môn học
 │   │   └── sync-photos/         ← Upload nền, retry khi mất mạng
