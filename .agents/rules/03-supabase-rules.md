@@ -1,60 +1,86 @@
 # Rule 03 — Supabase Rules
 
-## Client
+## Client Singleton (`src/shared/lib/supabase.ts`) — 🔴 CRITICAL
 
 ```ts
-// src/lib/supabase.ts — SINGLETON, không tạo thêm client khác
+// File này đã tồn tại — KHÔNG tạo thêm createClient() ở bất kỳ đâu khác
 import { createClient } from '@supabase/supabase-js'
-import { Database } from '@/types/supabase'
 
-export const supabase = createClient<Database>(
+export const supabase = createClient(
   process.env.EXPO_PUBLIC_SUPABASE_URL!,
   process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!
 )
 ```
 
-**Không bao giờ** tạo `createClient()` thứ hai ở bất kỳ file nào khác.
+---
+
+## Schema (Nguồn sự thật: `docs/02-backend-supabase/database-schema.md`)
+
+**Phase 1 tables (đang dùng):**
+```
+subjects  (id, user_id, name, color, icon, created_at)
+photos    (id, user_id, subject_id, storage_path, thumbnail_path,
+           taken_at, note, sync_status, created_at)
+```
+
+**Phase 2+:** `folders` (chưa tạo)  
+**Phase 3+:** `groups`, `group_members`, `photo_comments` (chưa tạo)  
+**Phase 4+:** thêm `ocr_text`, `ai_summary`, `ai_status` vào `photos` (chưa làm)
+
+→ Không tự thêm column/table nếu chưa được mô tả trong docs schema.
+
+---
+
+## Storage Buckets
+
+Có **2 buckets riêng biệt** (cả 2 đều **private** — dùng signed URL):
+
+| Bucket | Nội dung | Path pattern |
+|:-------|:---------|:-------------|
+| `photos` | Ảnh gốc | `{user_id}/{photo_id}.jpg` |
+| `thumbnails` | Ảnh nén (200px width) | `{user_id}/{photo_id}.jpg` |
+
+```ts
+// ✅ Upload ảnh gốc
+await supabase.storage.from('photos').upload(
+  `${userId}/${photoId}.jpg`,
+  fileBlob,
+  { contentType: 'image/jpeg', upsert: false }
+)
+
+// ✅ Lấy signed URL (30 phút)
+const { data } = await supabase.storage
+  .from('photos')
+  .createSignedUrl(`${userId}/${photoId}.jpg`, 1800)
+```
 
 ---
 
 ## Query Patterns
 
-### SELECT — luôn chỉ định columns cần thiết
 ```ts
-// ✅ Chỉ lấy những gì cần
-const { data } = await supabase
+// SELECT — chỉ lấy columns cần thiết
+const { data, error } = await supabase
   .from('subjects')
   .select('id, name, color, icon')
   .eq('user_id', userId)
   .order('created_at', { ascending: false })
 
-// ❌ Không select(*)  khi không cần hết
-const { data } = await supabase.from('subjects').select('*')
-```
-
-### INSERT
-```ts
-// ✅ Luôn return inserted row để sync state
+// INSERT — return inserted row
 const { data, error } = await supabase
   .from('subjects')
   .insert({ name, color, icon, user_id: userId })
   .select('id, name, color, icon')
   .single()
-```
 
-### UPDATE
-```ts
-// ✅ Luôn có WHERE clause (user_id hoặc id)
+// UPDATE — luôn có .eq('user_id') để đảm bảo ownership
 const { error } = await supabase
   .from('subjects')
   .update({ name: newName })
   .eq('id', subjectId)
-  .eq('user_id', userId) // double check ownership
-```
+  .eq('user_id', userId)
 
-### DELETE
-```ts
-// ✅ Phải confirm user ownership trước khi delete
+// DELETE — confirm ownership trước
 const { error } = await supabase
   .from('photos')
   .delete()
@@ -64,90 +90,36 @@ const { error } = await supabase
 
 ---
 
-## Row Level Security (RLS) — BẮT BUỘC
+## RLS (Row Level Security) — BẮT BUỘC
 
-Mọi table đều bật RLS. Mọi policy đều check `user_id = auth.uid()`.
+Mọi table đều bật RLS. Template:
 
 ```sql
--- Template policy cho mọi table
-CREATE POLICY "Users own their data" ON table_name
-  USING (user_id = auth.uid());
+-- Từ docs/02-backend-supabase/storage-and-auth.md
+alter table photos enable row level security;
 
-CREATE POLICY "Users insert own data" ON table_name
-  FOR INSERT WITH CHECK (user_id = auth.uid());
+create policy "Users can CRUD own photos"
+  on photos for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
 ```
 
-**Không được** tắt RLS để "test nhanh" rồi quên bật lại.
+**Không tắt RLS để test nhanh** — dùng Supabase local (`supabase start`) thay vì tắt RLS.
 
 ---
 
-## Storage
+## Auth — Đã Config (xem `docs/02-backend-supabase/storage-and-auth.md`)
 
-```ts
-// Path convention: {user_id}/{subject_id}/{photo_id}.jpg
-const storagePath = `${userId}/${subjectId}/${photoId}.jpg`
-
-// Upload
-const { error } = await supabase.storage
-  .from('photos')             // bucket name cố định
-  .upload(storagePath, file, {
-    contentType: 'image/jpeg',
-    upsert: false,            // không overwrite — mỗi ảnh là unique
-  })
-
-// Get URL (public bucket)
-const { data } = supabase.storage
-  .from('photos')
-  .getPublicUrl(storagePath)
-```
-
----
-
-## Auth & User Model Decision
-
-- **KHÔNG tạo model `User` riêng** (bảng `users` riêng) trong Prisma hay Database. Supabase Auth đã tự động quản lý `auth.users`.
-- Các bảng (`categories`, `topics`, `photos`) chỉ lưu `user_id` (`String @db.Uuid`).
-- Khi lưu/truy vấn data, dùng `user.id` lấy trực tiếp từ `supabase.auth.getUser()`.
-
-```ts
-// Lấy user hiện tại — luôn check null
-const { data: { user } } = await supabase.auth.getUser()
-if (!user) {
-  // redirect to login
-  router.replace('/(auth)/login')
-  return
-}
-
-// Dùng user.id trực tiếp cho các queries
-const { data } = await supabase.from('photos').select('*').eq('user_id', user.id)
-
-// Listen auth state change (trong root _layout.tsx)
-supabase.auth.onAuthStateChange((event, session) => {
-  if (event === 'SIGNED_OUT') router.replace('/(auth)/login')
-  if (event === 'SIGNED_IN') router.replace('/(tabs)')
-})
-```
-
----
-
-## Schema Structure (Category -> Topic -> Photo)
-
-- **`categories`**: Danh mục lớn (VD: "Công nghệ thông tin", "Đại học").
-- **`topics`**: Chủ đề / Môn học thuộc Category (VD: "Giải tích 1", "Vật lý đại cương").
-- **`photos`**: Ảnh bài giảng, liên kết `user_id`, `category_id`, `topic_id`, `storage_path`, `synced`.
-- Chi tiết Prisma schema xem tại [`prisma/schema.prisma`](file:///home/baudui/study_repo/prisma/schema.prisma).
-
----
-
-## Realtime (Phase 3+)
-
-Không implement Realtime cho đến Phase 3. Khi đến Phase 3 mới đọc rule này thêm.
+- **Email** + **Google** provider đã bật
+- Session lưu bằng `expo-secure-store` (an toàn hơn AsyncStorage thường)
+- Deep link: `studysnap://auth-callback`
+- Supabase project **tách riêng** khỏi webapp
 
 ---
 
 ## Migrations
 
-- File đặt tên: `YYYYMMDD_description.sql` (VD: `20260809_initial_schema.sql`)
-- Luôn test trên **Supabase local** (`supabase start`) trước khi apply production
-- Không viết destructive migration (DROP TABLE, DROP COLUMN) mà không backup
-- Mỗi migration chỉ làm 1 việc, không gom nhiều thay đổi vào 1 file
+- Path: `supabase/migrations/YYYYMMDDHHMMSS_description.sql`
+- Test local với `supabase start` + `supabase db reset` trước khi push
+- 1 migration = 1 thay đổi, không gom nhiều thứ vào 1 file
+- Không viết `DROP TABLE` / `DROP COLUMN` mà không backup trước

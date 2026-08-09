@@ -1,35 +1,52 @@
 # Flow: Auth (Supabase)
 
-> Login/logout flow — Email + Google OAuth.
+> Nguồn sự thật: `docs/02-backend-supabase/storage-and-auth.md`
+
+## Providers Đã Bật
+
+- **Email** (Magic Link hoặc password)
+- **Google** OAuth
+
+---
 
 ## Screen Flow
 
 ```
-App khởi động
-      ↓
-[Kiểm tra session hiện tại]
-      ├─ Có session valid → (tabs)/  (home)
-      └─ Không có session → (auth)/login
-      
+App start
+    ↓
+[Check session]
+    ├─ có session → (tabs)/
+    └─ không → (auth)/login
+
 (auth)/login
-  ├─ [Login Google]  → OAuth redirect → callback → (tabs)/
-  └─ [Login Email]   → Magic Link email → (tabs)/
-  
-(tabs)/
-  └─ [Logout] → clear session → (auth)/login
+    ├─ [Google] → OAuth redirect → studysnap://auth-callback → (tabs)/
+    └─ [Email]  → Magic Link email → (tabs)/
+
+(tabs)/ → [Logout] → clear session → (auth)/login
 ```
 
 ---
 
-## Root Layout (Auth Guard)
+## FSD Placement
+
+```
+app/_layout.tsx              ← 🔴 CRITICAL: root auth guard
+src/store/useAuthStore.ts    ← 🔴 CRITICAL: session state
+src/features/auth/           ← login logic (nếu cần tách)
+app/(auth)/login.tsx         ← Login screen (thin wrapper)
+```
+
+---
+
+## Root Auth Guard (`app/_layout.tsx`)
 
 ```tsx
-// app/_layout.tsx — CRITICAL FILE, không tự ý sửa
+// 🔴 CRITICAL — không sửa structure này
 export default function RootLayout() {
   const { session, loading } = useAuthStore()
-  
+
   if (loading) return <SplashScreen />
-  
+
   return (
     <Stack>
       {session ? (
@@ -44,62 +61,62 @@ export default function RootLayout() {
 
 ---
 
-## Auth Store
+## Supabase Client Config (với `expo-secure-store`)
 
 ```ts
-// src/store/useAuthStore.ts — CRITICAL FILE
-interface AuthState {
-  session: Session | null
-  user: User | null
-  loading: boolean
-  
-  initialize: () => Promise<void>   // gọi 1 lần khi app start
-  signOut: () => Promise<void>
+// src/shared/lib/supabase.ts — 🔴 CRITICAL, đã có sẵn
+import { createClient } from '@supabase/supabase-js'
+import * as SecureStore from 'expo-secure-store'
+
+const ExpoSecureStoreAdapter = {
+  getItem: (key: string) => SecureStore.getItemAsync(key),
+  setItem: (key: string, value: string) => SecureStore.setItemAsync(key, value),
+  removeItem: (key: string) => SecureStore.deleteItemAsync(key),
+}
+
+export const supabase = createClient(
+  process.env.EXPO_PUBLIC_SUPABASE_URL!,
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!,
+  {
+    auth: {
+      storage: ExpoSecureStoreAdapter,   // ← an toàn hơn AsyncStorage
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: false,         // false cho React Native
+    },
+  }
+)
+```
+
+---
+
+## Google OAuth
+
+```ts
+import * as WebBrowser from 'expo-web-browser'
+
+WebBrowser.maybeCompleteAuthSession()
+
+// Deep link redirect về app
+const handleGoogleLogin = async () => {
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: 'studysnap://auth-callback',
+    },
+  })
 }
 ```
 
 ---
 
-## Google OAuth Setup
+## Email Magic Link
 
 ```ts
-// Cần config trong Supabase Dashboard:
-// Authentication → Providers → Google → Enable
-// Redirect URL: exp://localhost:8081 (dev) + production URL
-
-import * as WebBrowser from 'expo-web-browser'
-import * as Google from 'expo-auth-session/providers/google'
-
-WebBrowser.maybeCompleteAuthSession()
-
-// Trong component Login:
-const [request, response, promptAsync] = Google.useAuthRequest({
-  androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-})
-
-useEffect(() => {
-  if (response?.type === 'success') {
-    const { id_token } = response.params
-    supabase.auth.signInWithIdToken({
-      provider: 'google',
-      token: id_token,
-    })
-  }
-}, [response])
-```
-
----
-
-## Magic Link (Email)
-
-```ts
-// Đơn giản hơn Google, dùng cho users không có Google
 const handleEmailLogin = async (email: string) => {
   const { error } = await supabase.auth.signInWithOtp({
     email,
-    options: {
-      emailRedirectTo: 'studysnap://auth/callback', // deep link
-    },
+    options: { emailRedirectTo: 'studysnap://auth-callback' },
   })
   if (error) showError(error.message)
   else showSuccess('Kiểm tra email của bạn!')
@@ -108,30 +125,22 @@ const handleEmailLogin = async (email: string) => {
 
 ---
 
-## Session Persistence
-
-Supabase tự handle refresh token qua `AsyncStorage`. Không cần tự implement.
+## Auth Store
 
 ```ts
-// src/lib/supabase.ts
-import AsyncStorage from '@react-native-async-storage/async-storage'
-
-export const supabase = createClient(URL, KEY, {
-  auth: {
-    storage: AsyncStorage,       // ← auto persist session
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,   // false cho React Native
-  },
-})
+// src/store/useAuthStore.ts — 🔴 CRITICAL
+interface AuthState {
+  session: Session | null
+  user: User | null
+  loading: boolean
+  initialize: () => Promise<void>   // gọi 1 lần khi app start
+  signOut: () => Promise<void>
+}
 ```
 
 ---
 
-## User Data
+## Không Cần
 
-```ts
-// Sau khi auth thành công, sync user profile
-// Không cần bảng users riêng — dùng auth.users của Supabase
-// Chỉ cần user_id (= auth.uid()) trong các bảng khác
-```
+- Bảng `users` riêng — dùng `auth.users` của Supabase, chỉ cần `user_id = auth.uid()` trong các bảng khác
+- Tự implement refresh token — Supabase + SecureStore xử lý tự động

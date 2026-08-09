@@ -1,80 +1,87 @@
-# Flow: Camera Capture
+# Flow: Camera Capture (`features/capture-photo`)
 
-> Màn hình chụp ảnh — core feature của StudySnap.
+> Nguồn sự thật: `docs/01-mobile-app/phase-1-capture-categorize.md`
 
-## UX Decision (đã chốt)
+## UX Target: ≤ 2 chạm từ mở app đến ảnh được lưu
 
-**Chọn môn TRƯỚC → bấm chụp** (không phải chụp rồi mới gắn môn)  
-Lý do: Học sinh đang nghe giảng, tốc độ quan trọng hơn linh hoạt.
+**Flow đã chốt: Chọn môn TRƯỚC → Bấm chụp**  
+(Lý do: đang nghe giảng, tốc độ quan trọng hơn linh hoạt)
 
 ---
 
 ## User Flow
 
 ```
-[Tab Camera]
+Tab Capture mở ra
       ↓
-[Hiển thị chip chọn môn (ngang, scroll được)]
-  → màu chip = màu môn học (nhận diện bằng màu, không cần đọc chữ)
-  → môn gần đây nhất được pre-select tự động
-      ↓
-[User tap chip chọn môn] (optional: giữ môn cũ nếu cùng buổi học)
+[Dải chip môn học cuộn ngang phía dưới]
+  → Màu chip = màu môn (nhận diện bằng màu, không cần đọc)
+  → Môn dùng gần nhất được pre-select tự động (giảm 1 thao tác)
       ↓
 [Viewfinder camera chiếm phần lớn màn hình]
       ↓
-[User tap nút chụp (hoặc volume button)]
+User tap chụp (hoặc volume button)
       ↓
-[Flash preview 0.3s] → không block
+[Lưu local NGAY - không block]  ← Rule 04: offline-first
       ↓
-[Lưu local + add queue] ← Rule 04: offline-first
-      ↓
-[Sẵn sàng chụp tiếp NGAY LẬP TỨC]
-      ↓
-[Góc dưới phải: thumbnail ảnh vừa chụp (tap → xem chi tiết)]
+[Sẵn sàng chụp tiếp NGAY]
+  → Thumbnail nhỏ góc dưới phải (tap → xem chi tiết)
+  → Badge sync status (⏳ pending / ✅ synced)
 ```
 
 ---
 
-## Component Structure
+## FSD Placement
 
 ```
-app/(tabs)/camera.tsx            ← Screen (thin, chỉ compose components)
-  ├── SubjectChipBar             ← Horizontal scroll chips
-  ├── CameraViewfinder           ← expo-camera wrapper
-  ├── CaptureButton              ← Nút chụp + volume button handler
-  └── LastPhotoThumbnail         ← Preview ảnh vừa chụp
+src/features/capture-photo/
+  useCapturePhoto.ts      ← logic: chụp, lưu local, add queue
+src/widgets/capture-flow/
+  CaptureFlow.tsx         ← ghép SubjectChipBar + CameraViewfinder + CaptureButton
+src/shared/ui/molecules/
+  SubjectChip.tsx         ← Chip màu cho 1 môn
+app/(tabs)/capture.tsx    ← thin wrapper → <CaptureScreen />
+src/screens/
+  CaptureScreen.tsx       ← import CaptureFlow widget
 ```
 
 ---
 
-## Code Flow (Camera Screen)
+## Code Flow
 
 ```tsx
-// 1. Pre-select môn gần nhất
-const { lastUsedSubjectId } = usePhotoStore()
-const [selectedSubject, setSelectedSubject] = useState(lastUsedSubjectId)
+// src/features/capture-photo/useCapturePhoto.ts
+export function useCapturePhoto() {
+  const { addToQueue, lastSubjectId } = usePhotoStore()
+  const [selectedSubjectId, setSelectedSubjectId] = useState(lastSubjectId)
 
-// 2. Chụp ảnh
-const handleCapture = async () => {
-  if (!selectedSubject) {
-    // Nhắc chọn môn, không block
-    showToast('Chọn môn học trước nhé!')
-    return
+  const capture = async (cameraRef: RefObject<Camera>) => {
+    if (!selectedSubjectId) {
+      // Nhắc chọn môn — không block
+      Alert.alert('Chọn môn học trước nhé!')
+      return
+    }
+
+    const photo = await cameraRef.current?.takePictureAsync({
+      quality: PHOTO_QUALITY,   // 0.8
+      skipProcessing: false,
+    })
+    if (!photo) return
+
+    // Lưu local + add queue — KHÔNG await upload
+    const photoId = uuid()
+    const localPath = await savePhotoLocal(photo.uri, photoId)
+
+    addToQueue({
+      id: photoId,
+      localPath,
+      subjectId: selectedSubjectId,
+      takenAt: new Date(),
+      synced: false,
+    })
   }
-  
-  const photo = await cameraRef.current?.takePictureAsync({
-    quality: PHOTO_QUALITY,  // 0.8
-    skipProcessing: false,
-  })
-  
-  if (!photo) return
-  
-  // 3. Lưu local NGAY (không await upload)
-  await savePhotoOffline(photo.uri, selectedSubject)
-  
-  // 4. Camera sẵn sàng chụp tiếp — không block
-  updateLastPhoto(photo.uri)
-  updateLastUsedSubject(selectedSubject)
+
+  return { capture, selectedSubjectId, setSelectedSubjectId }
 }
 ```
 
@@ -83,11 +90,10 @@ const handleCapture = async () => {
 ## Permissions
 
 ```ts
-// Yêu cầu khi app mở lần đầu, không yêu cầu lại mỗi lần
+// Xin 1 lần khi app mở lần đầu
 const { status } = await Camera.requestCameraPermissionsAsync()
 if (status !== 'granted') {
-  // Show màn hình giải thích + nút mở Settings
-  // Không crash, không chặn user dùng app
+  // Show màn hình giải thích + nút mở Settings — không crash app
 }
 ```
 
@@ -97,8 +103,8 @@ if (status !== 'granted') {
 
 | Tình huống | Xử lý |
 |:-----------|:------|
-| Chưa chọn môn | Toast nhắc nhở, không disable nút chụp |
-| Camera không available (emulator) | Show placeholder + message rõ ràng |
+| Chưa chọn môn | Alert nhắc, không disable nút chụp |
+| Camera không có (emulator) | Placeholder + message rõ |
 | Storage gần đầy | Warning trước khi chụp nếu < 100MB |
-| Chụp liên tục nhanh | Queue ảnh, không drop frame |
-| App background khi đang chụp | Pause camera, resume khi foreground |
+| Chụp liên tiếp nhanh | Queue ảnh, không drop |
+| App vào background | Pause camera, resume khi foreground |

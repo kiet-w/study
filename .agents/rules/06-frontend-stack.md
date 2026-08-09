@@ -1,22 +1,21 @@
 # Rule 06 — Frontend Tech Stack (React Native + Expo)
 
-> Đọc file này khi: setup project mới, thêm dependency, hoặc không chắc dùng thư viện nào.
+> Đọc khi: setup project, thêm dependency, không biết dùng thư viện nào.  
+> Nguồn sự thật chi tiết hơn: `docs/01-mobile-app/tech-stack.md`
 
 ---
 
 ## Package Manager
 
 ```bash
-# Dùng npm (không dùng yarn hay bun — nhất quán với Expo toolchain)
-npm install
-npx expo install <package>   # ← Dùng cho Expo-managed packages để tránh version conflict
+npm install                    # dependencies thông thường
+npx expo install <package>     # Expo-managed packages — tránh version conflict
 ```
 
 ---
 
-## Core Dependencies (Phase 1)
+## Core Stack
 
-### Framework
 ```json
 {
   "expo": "~52.x",
@@ -25,147 +24,103 @@ npx expo install <package>   # ← Dùng cho Expo-managed packages để tránh 
 }
 ```
 
-### Routing
-```bash
-npx expo install expo-router
-```
+---
+
+## Packages Đã Chọn (từ `docs/01-mobile-app/tech-stack.md`)
+
+| Nhu cầu | Package | Ghi chú |
+|:--------|:--------|:--------|
+| Camera | `expo-camera` | Chụp trực tiếp trong app |
+| Chọn ảnh từ album | `expo-image-picker` | Fallback khi không chụp trực tiếp |
+| Navigation | `expo-router` | File-based, giống Next.js App Router |
+| Styling | **`nativewind`** | Tailwind syntax cho RN |
+| State management | `zustand` | + AsyncStorage để persist |
+| Supabase client | `@supabase/supabase-js` | |
+| Local cache ảnh | `expo-file-system` | Lưu trước khi upload — offline-first |
+| Background upload | `expo-task-manager` + `expo-background-fetch` | Upload khi app chạy nền |
+| Nén ảnh | `expo-image-manipulator` | Resize + compress thumbnail |
+| Lưu session | `expo-secure-store` | An toàn hơn AsyncStorage |
+| Network status | `@react-native-community/netinfo` | Detect có mạng để trigger sync |
+
+---
+
+## Routing (Expo Router)
+
 ```
 app/
-├── _layout.tsx          ← Root layout (Stack navigator)
+├── _layout.tsx          ← Root layout + auth guard (🔴 CRITICAL)
 ├── (auth)/
-│   ├── _layout.tsx
 │   └── login.tsx
 └── (tabs)/
     ├── _layout.tsx      ← Tab navigator
-    ├── index.tsx        ← Home / Library
-    ├── camera.tsx       ← Camera screen
-    └── subjects.tsx     ← Subject management
-```
-- Dùng **Expo Router** (file-based routing), không dùng React Navigation thủ công
-- Route groups `(auth)`, `(tabs)` dùng để nhóm layout, không ảnh hưởng URL
-
-### Camera
-```bash
-npx expo install expo-camera expo-media-library
-```
-- `expo-camera` — capture ảnh trong app
-- `expo-media-library` — KHÔNG dùng để lưu (tránh lẫn album). Chỉ dùng nếu cần import từ album
-- Config `app.json`:
-```json
-{
-  "expo": {
-    "plugins": [
-      ["expo-camera", { "cameraPermission": "StudySnap cần camera để chụp bài giảng" }]
-    ]
-  }
-}
+    ├── capture.tsx      ← Camera screen (thin wrapper → CaptureScreen)
+    ├── library.tsx      ← Thư viện (thin wrapper → LibraryScreen)
+    └── subjects.tsx     ← Quản lý môn (thin wrapper → SubjectsScreen)
 ```
 
-### File System (Local Cache — Offline-first)
-```bash
-npx expo install expo-file-system expo-image-manipulator
-```
-- `expo-file-system` — lưu ảnh local trước khi upload
-- `expo-image-manipulator` — tạo thumbnail (resize + compress)
+**Quan trọng:** File trong `app/` chỉ là thin wrapper — import từ `src/screens/`, không viết logic ở đây.
 
-### State Management
-```bash
-npm install zustand
-npm install @react-native-async-storage/async-storage  # persist store
-npm install zustand-middleware-mmkv  # hoặc dùng AsyncStorage là đủ
+---
+
+## Styling — NativeWind
+
+```tsx
+// ✅ NativeWind cho layout, spacing, typography
+<View className="flex-1 px-4 py-2 bg-white">
+  <Text className="text-lg font-semibold text-gray-900">{subject.name}</Text>
+</View>
+
+// ✅ Dùng style={{ }} cho dynamic values từ data
+<View className="rounded-full px-3 py-1"
+      style={{ backgroundColor: subject.color }}>
 ```
-- **Zustand** — không Redux, không Context API cho global state
-- Persist store qua app restart bằng AsyncStorage
+
+Không dùng `StyleSheet.create()` nữa — dùng NativeWind làm primary styling.
+
+---
+
+## State Management — Zustand
 
 ```ts
-// Pattern chuẩn cho Zustand store
+// src/store/usePhotoStore.ts
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
 const usePhotoStore = create(
   persist(
-    (set, get) => ({ ... }),
+    (set, get) => ({
+      queue: [] as Photo[],
+      addToQueue: (photo: Photo) => set(s => ({ queue: [...s.queue, photo] })),
+      markSynced: (id: string) => set(s => ({
+        queue: s.queue.map(p => p.id === id ? { ...p, synced: true } : p)
+      })),
+    }),
     { name: 'photo-store', storage: createJSONStorage(() => AsyncStorage) }
   )
 )
 ```
 
-### Supabase Client
-```bash
-npm install @supabase/supabase-js
-npx expo install expo-secure-store  # lưu token an toàn
-```
-
-### Network Detection (Offline-first)
-```bash
-npx expo install @react-native-community/netinfo
-```
-
-### UI Components
-```bash
-# KHÔNG dùng UI library nặng (NativeBase, React Native Paper)
-# Tự build với StyleSheet — đơn giản hơn, ít bug hơn
-# Chỉ add nếu thật sự cần:
-npx expo install expo-linear-gradient   # gradient backgrounds
-npm install react-native-reanimated     # animations (đã có sẵn với Expo)
-npm install react-native-gesture-handler # gestures (đã có với Expo Router)
-```
-
-### Icons
-```bash
-# Expo đã bundle @expo/vector-icons — KHÔNG install thêm icon library
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
-```
-
 ---
 
-## Dev Dependencies
+## Icons
 
-```bash
-npm install -D typescript @types/react @types/react-native
-```
-
----
-
-## Build & Deploy
-
-```bash
-# Dev (Expo Go app)
-npx expo start
-
-# Build APK Android (test)
-eas build -p android --profile preview
-
-# Build APK Android (production)
-eas build -p android --profile production
-```
-
-### `eas.json` config
-```json
-{
-  "build": {
-    "preview": {
-      "android": { "buildType": "apk" }
-    },
-    "production": {
-      "android": { "buildType": "app-bundle" }
-    }
-  }
-}
+```tsx
+// Đã bundle với Expo — không install thêm icon library
+import { Ionicons } from '@expo/vector-icons'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
 ```
 
 ---
 
 ## Environment Variables
 
-```bash
-# .env (Expo dùng prefix EXPO_PUBLIC_ cho client-side vars)
+```env
+# .env
 EXPO_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 
-# Không được đặt sensitive keys với prefix EXPO_PUBLIC_
-# Server-only secrets → chỉ dùng trong EAS Secrets hoặc backend
+# Không đặt sensitive keys với EXPO_PUBLIC_ prefix
 ```
 
 ---
@@ -181,11 +136,7 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJ...
     "orientation": "portrait",
     "scheme": "studysnap",
     "android": {
-      "package": "com.kietw.studysnap",
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/icon.png",
-        "backgroundColor": "#ffffff"
-      }
+      "package": "com.kietw.studysnap"
     },
     "plugins": [
       "expo-router",
@@ -199,13 +150,30 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 
 ---
 
-## KHÔNG Dùng (Đã Quyết Định)
+## Build
+
+```bash
+# Dev
+npx expo start
+
+# APK test
+eas build -p android --profile preview
+
+# Production
+eas build -p android --profile production
+```
+
+---
+
+## KHÔNG Dùng (Đã Chốt)
 
 | Thứ | Thay bằng | Lý do |
 |:----|:----------|:------|
-| Redux / Redux Toolkit | Zustand | Quá verbose |
-| React Navigation (manual) | Expo Router | File-based = ít config hơn |
-| NativeBase / RN Paper | StyleSheet tự viết | Quá nặng, nhiều bug |
+| StyleSheet.create() | NativeWind | Đã chọn NativeWind làm primary styling |
+| Redux | Zustand | Quá verbose |
+| React Navigation thủ công | Expo Router | File-based = ít config hơn |
+| NativeBase / React Native Paper | NativeWind + tự build | Quá nặng |
 | Yarn / Bun | npm | Nhất quán với Expo toolchain |
-| Kotlin / Java | React Native | Tận dụng React đã biết |
-| `expo-image-picker` để save | `expo-file-system` | Không lưu vào album điện thoại |
+| Kotlin / Java | React Native + Expo | Tận dụng React đã biết |
+| Supabase Realtime (Phase 1) | Không dùng — để dành Phase 3 | YAGNI |
+| AI SDK (Phase 1) | Không dùng — để dành Phase 4 | YAGNI |

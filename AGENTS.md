@@ -1,122 +1,206 @@
 # AGENTS.md — StudySnap Android App
 
-> **Quick lookup:**
-> - Setup frontend (Expo/RN) → `.agents/rules/06-frontend-stack.md`
-> - Setup backend (Supabase/NestJS) → `.agents/rules/07-backend-stack.md`
-
 > **AI coding agent: Đọc file này TRƯỚC KHI làm bất cứ thứ gì.**
-> Nó cho bạn biết project này là gì, file nào được đụng, flow code nào phải theo.
+> Nó cho bạn biết project là gì, file nào được đụng, và rule nào phải theo.
 
 ---
 
-## 1. Project Snapshot (đọc trong 30 giây)
+## Quick Lookup
 
-**StudySnap** = Android app cho học sinh/sinh viên chụp ảnh bài giảng, phân loại theo môn học.  
-**Problem solved:** Ảnh bài giảng không còn lẫn lộn trong album điện thoại.  
-**Current stage:** Phase 0 — chưa có code, đang setup cấu trúc.
+| Tình huống | Đọc file nào |
+|:-----------|:------------|
+| Setup Expo / thêm package | `.agents/rules/06-frontend-stack.md` |
+| Setup Supabase / viết migration | `.agents/rules/07-backend-stack.md` |
+| Viết component / hook / file mới | `.agents/rules/02-code-style.md` |
+| Thao tác với Supabase query / RLS | `.agents/rules/03-supabase-rules.md` |
+| Implement camera hoặc upload | `.agents/flows/camera-capture.md` hoặc `.agents/flows/photo-upload.md` |
+| Implement auth | `.agents/flows/auth-flow.md` |
+| Không chắc feature thuộc phase nào | `.agents/rules/05-phase-gates.md` |
+| Lỗi bất kỳ liên quan data / auth | `.agents/rules/01-critical-files.md` |
+
+---
+
+## 1. Project Snapshot
+
+**StudySnap** = Android app giúp học sinh/sinh viên chụp ảnh bài giảng và phân loại theo môn học.  
+**Problem:** Ảnh bài giảng lẫn lộn với ảnh cá nhân trong album điện thoại, khó xem lại và chia sẻ.  
+**Current phase:** Phase 1 — MVP: chụp + phân loại + sync.
 
 ```
 Stack:
-  App      → React Native + Expo (TypeScript)
+  Mobile   → React Native + Expo 52 (TypeScript, Expo Router)
   Backend  → Supabase (Auth + PostgreSQL + Storage + Realtime)
+  Styling  → NativeWind (Tailwind syntax trên React Native)
+  State    → Zustand (persist qua AsyncStorage)
   AI (sau) → NestJS + BullMQ + Redis + Gemini Vision API (Phase 4)
 ```
 
-**Đọc thêm:** `README.md` (toàn bộ roadmap + schema)
+**Docs đầy đủ:** `docs/` — đây là nguồn sự thật, đọc trước khi code bất cứ feature nào.
 
 ---
 
-## 2. Cấu Trúc Thư Mục
+## 2. Cấu Trúc Thư Mục Thực Tế
 
 ```
 study/
-├── AGENTS.md               ← Bạn đang đọc file này
-├── README.md               ← Project overview & roadmap
-├── .agents/                ← Rules & flow cho AI agents
+├── AGENTS.md                    ← Bạn đang đọc
+├── README.md                    ← Tổng quan + roadmap
+│
+├── docs/                        ← NGUỒN SỰ THẬT — đọc trước khi code
+│   ├── 00-overview/
+│   │   └── vision-and-roadmap.md        ← Vision, roadmap, nguyên tắc thiết kế
+│   ├── 01-mobile-app/
+│   │   ├── tech-stack.md                ← Packages, lý do chọn, không dùng gì
+│   │   ├── folder-structure.md          ← FSD structure: shared/entities/features/widgets
+│   │   ├── phase-1-capture-categorize.md ← Scope MVP: capture + sync + library
+│   │   └── phase-2-albums-export.md     ← Scope phase 2 (chưa làm)
+│   ├── 02-backend-supabase/
+│   │   ├── database-schema.md           ← SQL schema từng phase (NGUỒN SỰ THẬT)
+│   │   ├── setup-steps.md               ← Các bước setup Supabase project
+│   │   └── storage-and-auth.md          ← Buckets, RLS, Auth providers
+│   ├── 04-group-chat-future/
+│   │   └── architecture.md              ← Phase 3: Supabase Realtime + nhóm chat
+│   └── 05-calendar-future/
+│       └── architecture.md              ← Phase 5: class_sessions + gợi ý môn
+│
+├── .agents/                     ← Rules và flows cho AI coding agent
 │   ├── rules/
-│   │   ├── 01-critical-files.md    ← Files KHÔNG được sửa tùy tiện
-│   │   ├── 02-code-style.md        ← TypeScript + React Native conventions
-│   │   ├── 03-supabase-rules.md    ← RLS, schema, query patterns
-│   │   ├── 04-offline-first.md     ← Offline-first là BẮT BUỘC
-│   │   ├── 05-phase-gates.md       ← Không code Phase N+1 khi Phase N chưa xong
-│   │   ├── 06-frontend-stack.md    ← Packages, versions, config Expo/RN ⭐
-│   │   └── 07-backend-stack.md     ← Supabase setup, migrations, AI service ⭐
+│   │   ├── 01-critical-files.md
+│   │   ├── 02-code-style.md
+│   │   ├── 03-supabase-rules.md
+│   │   ├── 04-offline-first.md
+│   │   ├── 05-phase-gates.md
+│   │   ├── 06-frontend-stack.md
+│   │   └── 07-backend-stack.md
 │   └── flows/
-│       ├── camera-capture.md       ← Flow chụp ảnh chuẩn
-│       ├── photo-upload.md         ← Flow offline cache → background sync
-│       └── auth-flow.md            ← Auth flow với Supabase
-├── app/                    ← Expo Router (file-based routing)
-│   ├── (auth)/             ← Auth screens
-│   ├── (tabs)/             ← Main tab navigator
-│   └── _layout.tsx
+│       ├── camera-capture.md
+│       ├── photo-upload.md
+│       └── auth-flow.md
+│
+├── app/                         ← Expo Router (THIN — chỉ routing, không logic)
+│   ├── (auth)/
+│   │   └── login.tsx
+│   ├── (tabs)/
+│   │   ├── capture.tsx          ← Chụp ảnh
+│   │   ├── library.tsx          ← Thư viện xem lại
+│   │   └── subjects.tsx         ← Quản lý môn học
+│   └── _layout.tsx              ← 🔴 CRITICAL: auth guard + root layout
+│
 ├── src/
-│   ├── components/         ← UI components
-│   ├── hooks/              ← Custom hooks
-│   ├── lib/                ← Core utilities (supabase client, etc.)
-│   ├── store/              ← Zustand state management
-│   └── types/              ← TypeScript types/interfaces
+│   ├── shared/                  ← Không có business logic, dùng khắp nơi
+│   │   ├── ui/atoms/            ← Button, Chip, Icon, ...
+│   │   ├── ui/molecules/        ← SubjectChip, PhotoThumbnail, ...
+│   │   ├── lib/                 ← supabase.ts 🔴, storage.ts, formatters
+│   │   └── config/              ← constants.ts, env
+│   │
+│   ├── entities/                ← Type + API call thuần (ít/không UI)
+│   │   ├── subject/             ← Subject type, subjectApi (CRUD)
+│   │   └── photo/               ← Photo type, photoApi
+│   │
+│   ├── features/                ← 1 tính năng = 1 folder, độc lập nhau
+│   │   ├── capture-photo/       ← Logic chụp + gắn môn
+│   │   ├── manage-subjects/     ← CRUD môn học
+│   │   └── sync-photos/         ← Upload nền, retry khi mất mạng
+│   │
+│   ├── widgets/                 ← Ghép features thành khối UI lớn
+│   │   ├── photo-grid/          ← Lưới ảnh + filter
+│   │   └── capture-flow/        ← Camera + chip chọn môn
+│   │
+│   ├── screens/                 ← Nội dung thật của screen, import widgets
+│   │   ├── CaptureScreen.tsx
+│   │   ├── LibraryScreen.tsx
+│   │   └── SubjectsScreen.tsx
+│   │
+│   ├── store/                   ← Zustand stores (persist)
+│   │   ├── useAuthStore.ts      ← 🔴 CRITICAL
+│   │   └── usePhotoStore.ts     ← 🔴 CRITICAL
+│   │
+│   └── types/
+│       └── index.ts             ← Subject, Photo, Folder interfaces
+│
 ├── supabase/
-│   └── migrations/         ← SQL migration files
-└── assets/
+│   └── migrations/              ← SQL files — không sửa trực tiếp DB mà không có đây
+│
+└── assets/                      ← Fonts, images, icons
 ```
 
 ---
 
-## 3. Files Tuyệt Đối KHÔNG Được Sửa (Trừ Khi User Yêu Cầu Rõ Ràng)
+## 3. Types Hiện Có (`src/types/index.ts`)
 
-| File/Folder | Lý do bảo vệ |
-|:-----------|:-------------|
-| `src/lib/supabase.ts` | Supabase client config — sai là mất auth toàn app |
-| `src/store/useAuthStore.ts` | Auth state — sai là logout vô cớ, loop auth |
-| `src/store/usePhotoStore.ts` | Photo queue state — sai là mất ảnh chưa sync |
-| `supabase/migrations/*.sql` | Database schema — sai là mất data production |
-| `app/_layout.tsx` | Root layout + auth guard — sai là routing vỡ |
-| `.env` / `.env.local` | API keys — không được hardcode, không được log |
-
-**Chi tiết:** `.agents/rules/01-critical-files.md`
+```ts
+Subject    { id, user_id, name, color, icon, created_at }
+Photo      { id, user_id, subject_id, storage_path, thumbnail_path,
+             note, taken_at, sort_order, synced, created_at }
+// Phase 2+: thêm folder_id vào Photo
+// Folder, Group, PhotoComment — xem docs/02-backend-supabase/database-schema.md
+```
 
 ---
 
-## 4. Phases — Làm Theo Thứ Tự, Không Nhảy Cóc
+## 4. Files Tuyệt Đối KHÔNG Được Sửa
 
-```
-Phase 0: Setup     → Expo project, Supabase, EAS Build, DB schema
-Phase 1: MVP       → Camera capture + subject management + photo library ← HIỆN TẠI
-Phase 2: UX        → Folders/chapters, drag-drop, PDF export, compression
-Phase 3: Social    → Groups, sharing, tagging, Realtime chat
-Phase 4: AI        → BullMQ + Gemini Vision OCR + flashcards
-Phase 5: Schedule  → Timetable + smart subject suggestion
-```
+| File | Hậu quả nếu sai |
+|:-----|:----------------|
+| `src/shared/lib/supabase.ts` | Mất auth toàn app |
+| `src/store/useAuthStore.ts` | Loop logout, mất session |
+| `src/store/usePhotoStore.ts` | Mất queue ảnh chưa sync |
+| `app/_layout.tsx` | Routing vỡ, auth guard mất |
+| `supabase/migrations/*.sql` | Nguy cơ mất data production |
+| `.env` | API keys — không log, không hardcode |
 
-> **Nguyên tắc:** Không implement bất kỳ feature nào của Phase N+1 khi Phase N chưa có test/demo chạy được.
-
-**Chi tiết:** `.agents/rules/05-phase-gates.md`
+→ Chi tiết: `.agents/rules/01-critical-files.md`
 
 ---
 
-## 5. Core Decisions (Đã Chốt, Không Tranh Luận Lại)
+## 5. Nguyên Tắc Import (FSD — Feature-Sliced Design)
 
-| Câu hỏi | Quyết định | Lý do |
-|:--------|:-----------|:------|
-| Framework mobile | **React Native + Expo** | User đã quen React, expo-camera đầy đủ |
-| Kotlin native? | **Không** | Tốn thời gian học stack mới trước khi code logic |
-| Supabase project | **Tách riêng** khỏi webapp | Không lẫn data |
-| Flow chụp | **Chọn môn TRƯỚC** khi bấm chụp | Nhanh hơn lúc đang nghe giảng |
-| Upload strategy | **Offline-first**: cache local → sync nền | Wifi/4G VN không ổn định |
-| State management | **Zustand** | Simple, không boilerplate như Redux |
-| MVP priority | **Nhanh → tự dùng thử → mở rộng** | YAGNI |
+```
+app/ → screens/ → widgets/ → features/ → entities/ → shared/
+```
+
+- **Chiều phụ thuộc chỉ đi xuống** — không được import ngược lên
+- `features/` không được import lẫn nhau
+- `app/` chỉ import từ `screens/`, không viết logic trực tiếp
 
 ---
 
-## 6. Khi Gặp Vấn Đề
+## 6. Phases
 
 ```
-Setup Expo / thêm package      → đọc .agents/rules/06-frontend-stack.md
-Setup Supabase / viết migration → đọc .agents/rules/07-backend-stack.md
-Lỗi Supabase/Auth/Data         → DỪNG, đọc .agents/rules/01-critical-files.md
-Lỗi offline sync               → DỪNG, đọc .agents/flows/photo-upload.md
-Câu hỏi về schema              → đọc supabase/migrations/ trước khi sửa
-Không chắc Phase nào           → đọc .agents/rules/05-phase-gates.md
+Phase 1: MVP      ← ĐANG LÀM
+  ✓ capture-photo: chụp + chọn môn + lưu local
+  ✓ manage-subjects: CRUD môn học  
+  ✓ sync-photos: upload nền khi có mạng
+  ✓ photo-grid: thư viện + filter theo môn/ngày
+  ✓ auth: email + Google
+
+Phase 2: UX       ← Chưa làm (docs/01-mobile-app/phase-2-albums-export.md)
+  - folders/chương, drag-drop, export PDF, nén ảnh
+
+Phase 3: Social   ← Chưa làm (docs/04-group-chat-future/architecture.md)
+  - Nhóm học, chia sẻ ảnh, tag, Supabase Realtime
+
+Phase 4: AI       ← Chưa làm
+  - NestJS + BullMQ + Gemini Vision: OCR, tóm tắt, flashcard
+
+Phase 5: Calendar ← Chưa làm (docs/05-calendar-future/architecture.md)
+  - class_sessions, gợi ý môn theo giờ học
 ```
 
-**Không được** refactor cấu trúc thư mục mà không hỏi user trước.
+→ Chi tiết: `.agents/rules/05-phase-gates.md`
+
+---
+
+## 7. Core Decisions (Đã Chốt)
+
+| Quyết định | Lý do |
+|:-----------|:------|
+| **React Native + Expo** (không Kotlin) | Tận dụng React đã biết |
+| **NativeWind** (Tailwind syntax) | Giữ quen tay với webapp |
+| **FSD folder structure** | Nhất quán với webapp hiện tại |
+| **Supabase project riêng** | Không lẫn data với webapp |
+| **Chọn môn TRƯỚC khi chụp** | Tối thiểu thao tác lúc đang nghe giảng (≤ 2 chạm) |
+| **Offline-first** | Wifi/4G VN không ổn định trong lớp học |
+| **2 buckets riêng** (`photos` + `thumbnails`) | Quản lý size và signed URL độc lập |
+| **MVP nhanh → dùng thử → mở rộng** | YAGNI |
