@@ -1,18 +1,3 @@
-export interface Subject {
-  id: string;
-  user_id: string;
-  name: string;
-  color: string;
-  icon: string;
-  created_at: string;
-}
-
-export interface CreateSubjectInput {
-  name: string;
-  color: string;
-  icon: string;
-}
-
 export interface Category {
   id: string;
   user_id: string;
@@ -21,6 +6,12 @@ export interface Category {
   icon?: string | null;
   sort_order: number;
   created_at: string;
+}
+
+export interface CreateCategoryInput {
+  name: string;
+  color: string;
+  icon: string;
 }
 
 export interface Topic {
@@ -32,6 +23,13 @@ export interface Topic {
   icon?: string | null;
   sort_order: number;
   created_at: string;
+}
+
+export interface CreateTopicInput {
+  category_id?: string;
+  name: string;
+  color?: string;
+  icon?: string;
 }
 
 export interface Photo {
@@ -47,3 +45,7 @@ export interface Photo {
   synced: boolean;
   created_at: string;
 }
+
+// Aliases for backward compatibility
+export type Subject = Category;
+export type CreateSubjectInput = CreateCategoryInput;

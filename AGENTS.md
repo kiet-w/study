@@ -121,8 +121,9 @@ study/
 - `Photo` (ảnh bài giảng): `{ id, userId, categoryId, topicId, storagePath, thumbnailPath, note, takenAt, sortOrder, synced, createdAt }`
 
 ### Frontend Types (`frontend/src/types/index.ts`)
-- `Subject` / `Category`: `{ id, user_id, name, color, icon, created_at }`
-- `Photo`: `{ id, user_id, subject_id, storage_path, thumbnail_path, note, taken_at, sort_order, synced, created_at }`
+- `Category` (môn học): `{ id, user_id, name, color, icon, sort_order, created_at }`
+- `Topic` (chương/chủ đề): `{ id, user_id, category_id, name, color, icon, sort_order, created_at }`
+- `Photo` (ảnh bài giảng): `{ id, user_id, category_id, topic_id, storage_path, thumbnail_path, note, taken_at, sort_order, synced, created_at }`
 
 ---
 

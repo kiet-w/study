@@ -1,6 +1,6 @@
 # Rule 03 — Supabase Rules
 
-## Client Singleton (`src/shared/lib/supabase.ts`) — 🔴 CRITICAL
+## Client Singleton (`frontend/src/lib/supabase.ts`) — 🔴 CRITICAL
 
 ```ts
 // File này đã tồn tại — KHÔNG tạo thêm createClient() ở bất kỳ đâu khác
@@ -18,12 +18,12 @@ export const supabase = createClient(
 
 **Phase 1 tables (đang dùng):**
 ```
-subjects  (id, user_id, name, color, icon, created_at)
-photos    (id, user_id, subject_id, storage_path, thumbnail_path,
-           taken_at, note, sync_status, created_at)
+categories (id, user_id, name, color, icon, sort_order, created_at)
+photos     (id, user_id, category_id, topic_id, storage_path, thumbnail_path,
+            taken_at, note, sync_status, created_at)
 ```
 
-**Phase 2+:** `folders` (chưa tạo)  
+**Phase 2+:** `topics` (chưa tạo)  
 **Phase 3+:** `groups`, `group_members`, `photo_comments` (chưa tạo)  
 **Phase 4+:** thêm `ocr_text`, `ai_summary`, `ai_status` vào `photos` (chưa làm)
 
@@ -61,23 +61,23 @@ const { data } = await supabase.storage
 ```ts
 // SELECT — chỉ lấy columns cần thiết
 const { data, error } = await supabase
-  .from('subjects')
-  .select('id, name, color, icon')
+  .from('categories')
+  .select('id, name, color, icon, sort_order')
   .eq('user_id', userId)
   .order('created_at', { ascending: false })
 
 // INSERT — return inserted row
 const { data, error } = await supabase
-  .from('subjects')
+  .from('categories')
   .insert({ name, color, icon, user_id: userId })
-  .select('id, name, color, icon')
+  .select('id, name, color, icon, sort_order')
   .single()
 
 // UPDATE — luôn có .eq('user_id') để đảm bảo ownership
 const { error } = await supabase
-  .from('subjects')
+  .from('categories')
   .update({ name: newName })
-  .eq('id', subjectId)
+  .eq('id', categoryId)
   .eq('user_id', userId)
 
 // DELETE — confirm ownership trước
@@ -95,31 +95,12 @@ const { error } = await supabase
 Mọi table đều bật RLS. Template:
 
 ```sql
--- Từ docs/02-backend-supabase/storage-and-auth.md
+alter table categories enable row level security;
+alter table topics enable row level security;
 alter table photos enable row level security;
 
-create policy "Users can CRUD own photos"
-  on photos for all
+create policy "Users can CRUD own categories"
+  on categories for all
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 ```
-
-**Không tắt RLS để test nhanh** — dùng Supabase local (`supabase start`) thay vì tắt RLS.
-
----
-
-## Auth — Đã Config (xem `docs/02-backend-supabase/storage-and-auth.md`)
-
-- **Email** + **Google** provider đã bật
-- Session lưu bằng `expo-secure-store` (an toàn hơn AsyncStorage thường)
-- Deep link: `studysnap://auth-callback`
-- Supabase project **tách riêng** khỏi webapp
-
----
-
-## Migrations
-
-- Path: `supabase/migrations/YYYYMMDDHHMMSS_description.sql`
-- Test local với `supabase start` + `supabase db reset` trước khi push
-- 1 migration = 1 thay đổi, không gom nhiều thứ vào 1 file
-- Không viết `DROP TABLE` / `DROP COLUMN` mà không backup trước

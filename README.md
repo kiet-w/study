@@ -52,21 +52,25 @@ App riêng biệt chỉ dành cho ảnh bài giảng. Chọn môn trước → c
 ## Database Schema
 
 ```sql
--- Môn học
-CREATE TABLE subjects (
+-- Môn học / Danh mục
+CREATE TABLE categories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,        -- "Vật lý đại cương", "Giải tích 1"
-  color TEXT,                -- hex color để nhận diện nhanh
+  color TEXT,                -- hex color nhận diện nhanh
   icon TEXT,                 -- emoji hoặc icon name
+  sort_order INT DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Chương / buổi học trong 1 môn
-CREATE TABLE folders (
+-- Chương / Chủ đề trong 1 môn
+CREATE TABLE topics (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  category_id UUID REFERENCES categories(id) ON DELETE SET NULL,
   name TEXT NOT NULL,        -- "Chương 3: Điện học"
+  color TEXT,
+  icon TEXT,
   sort_order INT DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -75,28 +79,21 @@ CREATE TABLE folders (
 CREATE TABLE photos (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL,
-  folder_id UUID REFERENCES folders(id) ON DELETE SET NULL,
+  category_id UUID REFERENCES categories(id) ON DELETE SET NULL,
+  topic_id UUID REFERENCES topics(id) ON DELETE SET NULL,
   storage_path TEXT NOT NULL,    -- path trong Supabase Storage
   thumbnail_path TEXT,           -- ảnh nén preview
   note TEXT,                     -- ghi chú thêm
   taken_at TIMESTAMPTZ NOT NULL, -- thời điểm chụp
-  sort_order INT DEFAULT 0,      -- thứ tự trong folder (kéo thả)
+  sort_order INT DEFAULT 0,      -- thứ tự trong topic (kéo thả)
   synced BOOLEAN DEFAULT FALSE,  -- đã upload lên cloud chưa
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- RLS: mỗi user chỉ thấy data của mình
-ALTER TABLE subjects ENABLE ROW LEVEL SECURITY;
-ALTER TABLE folders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE topics ENABLE ROW LEVEL SECURITY;
 ALTER TABLE photos ENABLE ROW LEVEL SECURITY;
-
--- Bảng mở rộng sau này (giai đoạn 3+)
--- groups (id, name, invite_code, created_by)
--- group_members (group_id, user_id, role)
--- group_photos (group_id, photo_id, shared_by)
--- photo_tags (photo_id, tagged_user_id)
--- photo_comments (photo_id, user_id, content)
 ```
 
 ---

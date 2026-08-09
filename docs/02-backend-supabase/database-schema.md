@@ -2,24 +2,26 @@
 
 Nguồn sự thật duy nhất cho schema — mọi thay đổi bảng phải cập nhật ở đây trước khi code.
 
-## Giai đoạn 1 (MVP — chạy trước)
+## Giai đoạn 1 (MVP — Categories & Photos)
 
 ```sql
--- Môn học
-create table subjects (
+-- Môn học / Danh mục
+create table categories (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users(id) on delete cascade not null,
   name text not null,
-  color text not null,          -- hex code, hiển thị chip
-  icon text,                    -- tên icon (tabler icon name)
+  color text,                  -- hex code, hiển thị chip
+  icon text,                   -- tên icon hoặc emoji
+  sort_order int default 0,
   created_at timestamptz default now()
 );
 
--- Ảnh
+-- Ảnh bài giảng
 create table photos (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users(id) on delete cascade not null,
-  subject_id uuid references subjects(id) on delete set null,
+  category_id uuid references categories(id) on delete set null,
+  topic_id uuid references topics(id) on delete set null,
   storage_path text not null,          -- path trong bucket "photos"
   thumbnail_path text,
   taken_at timestamptz not null,
@@ -28,23 +30,26 @@ create table photos (
   created_at timestamptz default now()
 );
 
-create index idx_photos_user_subject on photos(user_id, subject_id);
+create index idx_photos_user_category on photos(user_id, category_id);
 create index idx_photos_taken_at on photos(taken_at desc);
 ```
 
-## Giai đoạn 2
+## Giai đoạn 2 (Topics / Chương)
 
 ```sql
--- Chương/buổi học trong 1 môn
-create table folders (
+-- Chương / Chủ đề trong 1 môn
+create table topics (
   id uuid primary key default gen_random_uuid(),
-  subject_id uuid references subjects(id) on delete cascade not null,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  category_id uuid references categories(id) on delete set null,
   name text not null,
+  color text,
+  icon text,
   sort_order int default 0,
   created_at timestamptz default now()
 );
 
-alter table photos add column folder_id uuid references folders(id) on delete set null;
+alter table photos add column topic_id uuid references topics(id) on delete set null;
 ```
 
 ## Giai đoạn 3 (tương lai — nhóm chat, chưa chạy)
@@ -88,7 +93,7 @@ alter table photos add column ai_status text default 'not_processed'; -- 'not_pr
 create table class_sessions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users(id) not null,
-  subject_id uuid references subjects(id) on delete cascade not null,
+  category_id uuid references categories(id) on delete cascade not null,
   weekday int not null,      -- 0 = Chủ nhật ... 6 = Thứ 7
   start_time time not null,
   end_time time not null
