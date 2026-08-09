@@ -103,7 +103,11 @@ const { data } = supabase.storage
 
 ---
 
-## Auth
+## Auth & User Model Decision
+
+- **KHÔNG tạo model `User` riêng** (bảng `users` riêng) trong Prisma hay Database. Supabase Auth đã tự động quản lý `auth.users`.
+- Các bảng (`categories`, `topics`, `photos`) chỉ lưu `user_id` (`String @db.Uuid`).
+- Khi lưu/truy vấn data, dùng `user.id` lấy trực tiếp từ `supabase.auth.getUser()`.
 
 ```ts
 // Lấy user hiện tại — luôn check null
@@ -114,12 +118,24 @@ if (!user) {
   return
 }
 
+// Dùng user.id trực tiếp cho các queries
+const { data } = await supabase.from('photos').select('*').eq('user_id', user.id)
+
 // Listen auth state change (trong root _layout.tsx)
 supabase.auth.onAuthStateChange((event, session) => {
   if (event === 'SIGNED_OUT') router.replace('/(auth)/login')
   if (event === 'SIGNED_IN') router.replace('/(tabs)')
 })
 ```
+
+---
+
+## Schema Structure (Category -> Topic -> Photo)
+
+- **`categories`**: Danh mục lớn (VD: "Công nghệ thông tin", "Đại học").
+- **`topics`**: Chủ đề / Môn học thuộc Category (VD: "Giải tích 1", "Vật lý đại cương").
+- **`photos`**: Ảnh bài giảng, liên kết `user_id`, `category_id`, `topic_id`, `storage_path`, `synced`.
+- Chi tiết Prisma schema xem tại [`prisma/schema.prisma`](file:///home/baudui/study_repo/prisma/schema.prisma).
 
 ---
 

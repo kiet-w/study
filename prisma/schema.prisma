@@ -1,0 +1,70 @@
+// schema.prisma
+// Category, Topic, Photo (Khong dùng model User để tránh lệch với Supabase auth.users)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Category {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  name      String
+  color     String?
+  icon      String?
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  topics Topic[]
+  photos Photo[]
+
+  @@index([userId])
+  @@map("categories")
+}
+
+model Topic {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  categoryId String?  @map("category_id") @db.Uuid
+  name       String
+  color      String?
+  icon       String?
+  sortOrder  Int      @default(0) @map("sort_order")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  photos   Photo[]
+
+  @@index([userId])
+  @@index([categoryId])
+  @@map("topics")
+}
+
+model Photo {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  categoryId    String?   @map("category_id") @db.Uuid
+  topicId       String?   @map("topic_id") @db.Uuid
+  storagePath   String    @map("storage_path")
+  thumbnailPath String?   @map("thumbnail_path")
+  note          String?
+  takenAt       DateTime  @map("taken_at") @db.Timestamptz
+  sortOrder     Int       @default(0) @map("sort_order")
+  synced        Boolean   @default(false)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  topic    Topic?    @relation(fields: [topicId], references: [id], onDelete: SetNull)
+
+  @@index([userId, topicId])
+  @@index([userId, categoryId])
+  @@index([userId])
+  @@index([synced])
+  @@index([takenAt])
+  @@map("photos")
+}

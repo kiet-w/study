@@ -1,5 +1,9 @@
 # AGENTS.md — StudySnap Android App
 
+> **Quick lookup:**
+> - Setup frontend (Expo/RN) → `.agents/rules/06-frontend-stack.md`
+> - Setup backend (Supabase/NestJS) → `.agents/rules/07-backend-stack.md`
+
 > **AI coding agent: Đọc file này TRƯỚC KHI làm bất cứ thứ gì.**
 > Nó cho bạn biết project này là gì, file nào được đụng, flow code nào phải theo.
 
@@ -34,7 +38,9 @@ study/
 │   │   ├── 02-code-style.md        ← TypeScript + React Native conventions
 │   │   ├── 03-supabase-rules.md    ← RLS, schema, query patterns
 │   │   ├── 04-offline-first.md     ← Offline-first là BẮT BUỘC
-│   │   └── 05-phase-gates.md       ← Không code Phase N+1 khi Phase N chưa xong
+│   │   ├── 05-phase-gates.md       ← Không code Phase N+1 khi Phase N chưa xong
+│   │   ├── 06-frontend-stack.md    ← Packages, versions, config Expo/RN ⭐
+│   │   └── 07-backend-stack.md     ← Supabase setup, migrations, AI service ⭐
 │   └── flows/
 │       ├── camera-capture.md       ← Flow chụp ảnh chuẩn
 │       ├── photo-upload.md         ← Flow offline cache → background sync
@@ -105,10 +111,12 @@ Phase 5: Schedule  → Timetable + smart subject suggestion
 ## 6. Khi Gặp Vấn Đề
 
 ```
-Lỗi Supabase/Auth/Data → DỪNG, đọc .agents/rules/01-critical-files.md
-Lỗi offline sync      → DỪNG, đọc .agents/flows/photo-upload.md
-Câu hỏi về schema     → đọc supabase/migrations/ trước khi sửa
-Không chắc Phase nào  → đọc .agents/rules/05-phase-gates.md
+Setup Expo / thêm package      → đọc .agents/rules/06-frontend-stack.md
+Setup Supabase / viết migration → đọc .agents/rules/07-backend-stack.md
+Lỗi Supabase/Auth/Data         → DỪNG, đọc .agents/rules/01-critical-files.md
+Lỗi offline sync               → DỪNG, đọc .agents/flows/photo-upload.md
+Câu hỏi về schema              → đọc supabase/migrations/ trước khi sửa
+Không chắc Phase nào           → đọc .agents/rules/05-phase-gates.md
 ```
 
 **Không được** refactor cấu trúc thư mục mà không hỏi user trước.
