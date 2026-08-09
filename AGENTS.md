@@ -1,206 +1,166 @@
-# AGENTS.md — StudySnap Android App
+# AGENTS.md — StudySnap Android & Backend Monorepo
 
 > **AI coding agent: Đọc file này TRƯỚC KHI làm bất cứ thứ gì.**
-> Nó cho bạn biết project là gì, file nào được đụng, và rule nào phải theo.
+> File này định nghĩa toàn bộ quy chuẩn dự án, cấu trúc thư mục Frontend/Backend, các file critical không được sửa tự do, và chỉ dẫn các rule cần tuân thủ.
 
 ---
 
-## Quick Lookup
+## Quick Lookup Index
 
 | Tình huống | Đọc file nào |
 |:-----------|:------------|
-| Setup Expo / thêm package | `.agents/rules/06-frontend-stack.md` |
-| Setup Supabase / viết migration | `.agents/rules/07-backend-stack.md` |
-| Viết component / hook / file mới | `.agents/rules/02-code-style.md` |
-| Thao tác với Supabase query / RLS | `.agents/rules/03-supabase-rules.md` |
-| Implement camera hoặc upload | `.agents/flows/camera-capture.md` hoặc `.agents/flows/photo-upload.md` |
-| Implement auth | `.agents/flows/auth-flow.md` |
-| Không chắc feature thuộc phase nào | `.agents/rules/05-phase-gates.md` |
-| Lỗi bất kỳ liên quan data / auth | `.agents/rules/01-critical-files.md` |
+| Setup / phát triển **NestJS API Backend** | `.agents/rules/07-backend-stack.md` |
+| Setup / phát triển **React Native + Expo App** | `.agents/rules/06-frontend-stack.md` |
+| Viết component / controller / service / file mới | `.agents/rules/02-code-style.md` |
+| Thao tác với Supabase query, RLS, Storage | `.agents/rules/03-supabase-rules.md` |
+| Logic offline-first, queue & sync ảnh | `.agents/rules/04-offline-first.md` |
+| Implement camera hoặc upload flow | `.agents/flows/camera-capture.md` hoặc `.agents/flows/photo-upload.md` |
+| Implement auth (Email / Google / Supabase) | `.agents/flows/auth-flow.md` |
+| Kiểm tra scope từng Phase dự án | `.agents/rules/05-phase-gates.md` |
+| Xử lý lỗi liên quan file quan trọng (Critical) | `.agents/rules/01-critical-files.md` |
 
 ---
 
 ## 1. Project Snapshot
 
-**StudySnap** = Android app giúp học sinh/sinh viên chụp ảnh bài giảng và phân loại theo môn học.  
+**StudySnap** = Ứng dụng Android giúp học sinh/sinh viên chụp ảnh bài giảng, tự động phân loại theo môn học (Categories) và chương (Topics), đi kèm hệ thống REST API Backend NestJS.  
 **Problem:** Ảnh bài giảng lẫn lộn với ảnh cá nhân trong album điện thoại, khó xem lại và chia sẻ.  
-**Current phase:** Phase 1 — MVP: chụp + phân loại + sync.
+**Current Phase:** Phase 1 — MVP: Chụp + Chọn môn + Local Storage + NestJS Backend REST API & Supabase Sync.
 
 ```
-Stack:
-  Mobile   → React Native + Expo 52 (TypeScript, Expo Router)
-  Backend  → NestJS (TypeScript, Prisma ORM, Supabase PostgreSQL)
-  Styling  → NativeWind (Tailwind syntax trên React Native)
-  State    → Zustand (persist qua AsyncStorage)
-  AI (sau) → NestJS + BullMQ + Redis + Gemini Vision API (Phase 4)
+Tech Stack Overview:
+  Mobile App   → React Native + Expo 52 (TypeScript, Expo Router)
+  Backend API  → NestJS 10 (TypeScript, Prisma ORM, Swagger, ValidationPipe)
+  Database     → Supabase PostgreSQL (Prisma ORM integration)
+  Styling      → NativeWind (Tailwind syntax trên React Native)
+  State Management → Zustand (persist qua AsyncStorage)
+  AI (Phase 4) → NestJS + BullMQ + Redis + Gemini Vision API
 ```
 
-**Docs đầy đủ:** `docs/` — đây là nguồn sự thật, đọc trước khi code bất cứ feature nào.
+**Docs đầy đủ:** `docs/` — nguồn sự thật về kiến trúc và roadmap.
 
 ---
 
-## 2. Cấu Trúc Thư Mục Thực Tế
+## 2. Cấu Trúc Thư Mục Dự Án Thực Tế (Workspace Layout)
 
 ```
 study/
-├── AGENTS.md                    ← Bạn đang đọc
-├── README.md                    ← Tổng quan + roadmap
+├── AGENTS.md                         ← File hướng dẫn AI Agent này
+├── README.md                         ← Master documentation dự án
+├── .gitignore                        ← Cấu hình gitignore cho monorepo
 │
-├── docs/                        ← NGUỒN SỰ THẬT — đọc trước khi code
-│   ├── 00-overview/
-│   │   └── vision-and-roadmap.md        ← Vision, roadmap, nguyên tắc thiết kế
+├── docs/                             ← Tài liệu kỹ thuật chi tiết
+│   ├── 00-overview/vision-and-roadmap.md
 │   ├── 01-mobile-app/
-│   │   ├── tech-stack.md                ← Packages, lý do chọn, không dùng gì
-│   │   ├── folder-structure.md          ← FSD structure: shared/entities/features/widgets
-│   │   ├── phase-1-capture-categorize.md ← Scope MVP: capture + sync + library
-│   │   └── phase-2-albums-export.md     ← Scope phase 2 (chưa làm)
-│   ├── 02-backend-supabase/
-│   │   ├── database-schema.md           ← SQL schema từng phase (NGUỒN SỰ THẬT)
-│   │   ├── setup-steps.md               ← Các bước setup Supabase project
-│   │   └── storage-and-auth.md          ← Buckets, RLS, Auth providers
-│   ├── 04-group-chat-future/
-│   │   └── architecture.md              ← Phase 3: Supabase Realtime + nhóm chat
-│   └── 05-calendar-future/
-│       └── architecture.md              ← Phase 5: class_sessions + gợi ý môn
+│   │   ├── tech-stack.md
+│   │   ├── folder-structure.md       ← FSD structure: shared/entities/features/widgets
+│   │   ├── phase-1-capture-categorize.md
+│   │   └── phase-2-albums-export.md
+│   └── 02-backend-supabase/
+│       ├── database-schema.md
+│       ├── setup-steps.md
+│       └── storage-and-auth.md
 │
-├── .agents/                     ← Rules và flows cho AI coding agent
+├── .agents/                          ← Rules và flows hướng dẫn AI Coding Agent
 │   ├── rules/
-│   │   ├── 01-critical-files.md
-│   │   ├── 02-code-style.md
-│   │   ├── 03-supabase-rules.md
-│   │   ├── 04-offline-first.md
-│   │   ├── 05-phase-gates.md
-│   │   ├── 06-frontend-stack.md
-│   │   └── 07-backend-stack.md
+│   │   ├── 01-critical-files.md      ← Danh sách file bảo vệ
+│   │   ├── 02-code-style.md          ← Quy chuẩn code TypeScript, RN, NestJS
+│   │   ├── 03-supabase-rules.md      ← RLS, Auth, Client queries
+│   │   ├── 04-offline-first.md      ← Queue sync ảnh local
+│   │   ├── 05-phase-gates.md         ← Phân chia tính năng từng phase
+│   │   ├── 06-frontend-stack.md      ← Expo, NativeWind, FSD
+│   │   └── 07-backend-stack.md       ← NestJS, Prisma ORM, Swagger, Interceptors
 │   └── flows/
 │       ├── camera-capture.md
 │       ├── photo-upload.md
-│       └── auth-flow.md
+│       ├── auth-flow.md
+│       └── create-subject.md
 │
-├── frontend/                    ← React Native / Expo Frontend App
+├── frontend/                         ← React Native / Expo Mobile App
 │   ├── package.json
 │   ├── tsconfig.json
+│   ├── README.md                     ← Hướng dẫn chạy Frontend
 │   └── src/
-│       ├── components/          # UI Components
-│       ├── hooks/               # Custom hooks
-│       ├── lib/                 # supabase.ts 🔴, subjectService, formatters
-│       └── types/               # Frontend interfaces
+│       ├── components/               # Reusable UI Components (Modal, Button, Input,...)
+│       ├── hooks/                    # Custom React Hooks (useSubjects,...)
+│       ├── lib/                      # Supabase client singleton 🔴, subjectService, constants
+│       └── types/                    # Interfaces (Subject, Photo, CreateSubjectInput,...)
 │
-├── backend/                     # NestJS Backend Server (TypeScript, Prisma ORM)
+├── backend/                          ← NestJS REST API Backend Server
 │   ├── package.json
 │   ├── tsconfig.json
 │   ├── nest-cli.json
-│   ├── prisma/                  # Prisma ORM schema
-│   │   └── schema.prisma
+│   ├── README.md                     # Hướng dẫn chạy Backend & Swagger docs
+│   ├── prisma/
+│   │   └── schema.prisma             # Prisma ORM schema (Category, Topic, Photo) 🔴
 │   └── src/
-│       ├── main.ts              # Entry point (NestFactory, Swagger, ValidationPipe)
-│       ├── app.module.ts        # Root Module
-│       ├── modules/             # Feature modules (users, etc.)
-│       └── shared/              # Shared module & services (PrismaService, etc.)
-
-│   │   ├── capture-photo/       ← Logic chụp + gắn môn
-│   │   ├── manage-subjects/     ← CRUD môn học
-│   │   └── sync-photos/         ← Upload nền, retry khi mất mạng
-│   │
-│   ├── widgets/                 ← Ghép features thành khối UI lớn
-│   │   ├── photo-grid/          ← Lưới ảnh + filter
-│   │   └── capture-flow/        ← Camera + chip chọn môn
-│   │
-│   ├── screens/                 ← Nội dung thật của screen, import widgets
-│   │   ├── CaptureScreen.tsx
-│   │   ├── LibraryScreen.tsx
-│   │   └── SubjectsScreen.tsx
-│   │
-│   ├── store/                   ← Zustand stores (persist)
-│   │   ├── useAuthStore.ts      ← 🔴 CRITICAL
-│   │   └── usePhotoStore.ts     ← 🔴 CRITICAL
-│   │
-│   └── types/
-│       └── index.ts             ← Subject, Photo, Folder interfaces
+│       ├── main.ts                   # NestJS entrypoint (ValidationPipe, Swagger, CORS) 🔴
+│       ├── app.module.ts             # Root Module 🔴
+│       ├── shared/
+│       │   ├── prisma/               # Global PrismaModule & PrismaService 🔴
+│       │   ├── filters/              # Global HttpExceptionFilter
+│       │   └── interceptors/         # Global TransformInterceptor
+│       └── modules/                  # Feature Modules (Controllers, Services, DTOs)
+│           ├── categories/           # CategoriesModule (CRUD môn học)
+│           ├── topics/               # TopicsModule (CRUD chương/chủ đề)
+│           ├── photos/               # PhotosModule (Quản lý ảnh & sync status)
+│           ├── users/                # UsersModule (User profile management)
+│           └── health/               # HealthModule (GET /api/health)
 │
-├── supabase/
-│   └── migrations/              ← SQL files — không sửa trực tiếp DB mà không có đây
-│
-└── assets/                      ← Fonts, images, icons
+└── supabase/
+    └── migrations/                   # SQL migration scripts
 ```
 
 ---
 
-## 3. Types Hiện Có (`src/types/index.ts`)
+## 3. Types & Schema Mẫu
 
-```ts
-Subject    { id, user_id, name, color, icon, created_at }
-Photo      { id, user_id, subject_id, storage_path, thumbnail_path,
-             note, taken_at, sort_order, synced, created_at }
-// Phase 2+: thêm folder_id vào Photo
-// Folder, Group, PhotoComment — xem docs/02-backend-supabase/database-schema.md
-```
+### Prisma Schema (`backend/prisma/schema.prisma`)
+- `Category` (môn học): `{ id, userId, name, color, icon, sortOrder, createdAt }`
+- `Topic` (chương): `{ id, userId, categoryId, name, color, icon, sortOrder, createdAt }`
+- `Photo` (ảnh bài giảng): `{ id, userId, categoryId, topicId, storagePath, thumbnailPath, note, takenAt, sortOrder, synced, createdAt }`
 
----
-
-## 4. Files Tuyệt Đối KHÔNG Được Sửa
-
-| File | Hậu quả nếu sai |
-|:-----|:----------------|
-| `src/shared/lib/supabase.ts` | Mất auth toàn app |
-| `src/store/useAuthStore.ts` | Loop logout, mất session |
-| `src/store/usePhotoStore.ts` | Mất queue ảnh chưa sync |
-| `app/_layout.tsx` | Routing vỡ, auth guard mất |
-| `supabase/migrations/*.sql` | Nguy cơ mất data production |
-| `.env` | API keys — không log, không hardcode |
-
-→ Chi tiết: `.agents/rules/01-critical-files.md`
+### Frontend Types (`frontend/src/types/index.ts`)
+- `Subject` / `Category`: `{ id, user_id, name, color, icon, created_at }`
+- `Photo`: `{ id, user_id, subject_id, storage_path, thumbnail_path, note, taken_at, sort_order, synced, created_at }`
 
 ---
 
-## 5. Nguyên Tắc Import (FSD — Feature-Sliced Design)
+## 4. Files Tuyệt Đối KHÔNG Được Sửa Trực Tiếp (Critical Protection)
 
-```
-app/ → screens/ → widgets/ → features/ → entities/ → shared/
-```
+| File | Lý do bảo vệ / Hậu quả nếu sai |
+|:-----|:-------------------------------|
+| `frontend/src/lib/supabase.ts` | 🔴 Mất khởi tạo Auth & Supabase singleton client toàn app |
+| `backend/src/main.ts` | 🔴 Hỏng cấu hình NestFactory, Swagger, Global Pipes & CORS |
+| `backend/src/app.module.ts` | 🔴 Hỏng luồng import Root Module của NestJS |
+| `backend/src/shared/prisma/prisma.service.ts` | 🔴 Hỏng kết nối Database của Prisma ORM toàn backend |
+| `backend/prisma/schema.prisma` | 🔴 Nguy cơ lệch DB Schema với Supabase PostgreSQL |
+| `supabase/migrations/*.sql` | 🔴 Risk mất dữ liệu Production |
+| `.env` | 🔴 Chứa Secrets/API Keys — không log, không push token |
 
-- **Chiều phụ thuộc chỉ đi xuống** — không được import ngược lên
-- `features/` không được import lẫn nhau
-- `app/` chỉ import từ `screens/`, không viết logic trực tiếp
+→ Xem chi tiết tại: `.agents/rules/01-critical-files.md`
 
 ---
 
-## 6. Phases
+## 5. Nguyên Tắc Import & Kiến Trúc Code
 
-```
-Phase 1: MVP      ← ĐANG LÀM
-  ✓ capture-photo: chụp + chọn môn + lưu local
-  ✓ manage-subjects: CRUD môn học  
-  ✓ sync-photos: upload nền khi có mạng
-  ✓ photo-grid: thư viện + filter theo môn/ngày
-  ✓ auth: email + Google
+### Backend (NestJS Architecture)
+- Luồng phụ thuộc: `Route → Controller → Service → PrismaService (Database)`
+- Tất cả DTOs bắt buộc dùng `class-validator` và `@nestjs/swagger` decorators.
+- Service nhận và trả về dữ liệu qua DTO / Prisma Models, không xử lý trực tiếp HTTP Request/Response objects (`req`, `res`).
 
-Phase 2: UX       ← Chưa làm (docs/01-mobile-app/phase-2-albums-export.md)
-  - folders/chương, drag-drop, export PDF, nén ảnh
+### Frontend (Feature-Sliced Design)
+- Luồng phụ thuộc: `app/ → screens/ → widgets/ → features/ → entities/ → shared/`
+- `features/` tuyệt đối không import lẫn nhau.
 
-Phase 3: Social   ← Chưa làm (docs/04-group-chat-future/architecture.md)
-  - Nhóm học, chia sẻ ảnh, tag, Supabase Realtime
+---
 
-Phase 4: AI       ← Chưa làm
-  - NestJS + BullMQ + Gemini Vision: OCR, tóm tắt, flashcard
+## 6. Lộ Trình Phát Triển (Phase Gates Summary)
 
-Phase 5: Calendar ← Chưa làm (docs/05-calendar-future/architecture.md)
-  - class_sessions, gợi ý môn theo giờ học
-```
+- **Phase 1 (MVP — ĐANG LÀM):** React Native Mobile App + NestJS REST API + Supabase PostgreSQL (Categories, Photos, Sync, Auth).
+- **Phase 2 (UX):** Topics/Folders, Kéo thả sắp xếp, Export PDF.
+- **Phase 3 (Social):** Nhóm học tập, Chia sẻ ảnh, Supabase Realtime Chat.
+- **Phase 4 (AI):** NestJS + BullMQ + Redis + Gemini Vision API (OCR bảng, tóm tắt bài giảng).
+- **Phase 5 (Calendar):** Lịch học `class_sessions`, tự động gợi ý môn học khi chụp trong giờ.
 
 → Chi tiết: `.agents/rules/05-phase-gates.md`
-
----
-
-## 7. Core Decisions (Đã Chốt)
-
-| Quyết định | Lý do |
-|:-----------|:------|
-| **React Native + Expo** (không Kotlin) | Tận dụng React đã biết |
-| **NativeWind** (Tailwind syntax) | Giữ quen tay với webapp |
-| **FSD folder structure** | Nhất quán với webapp hiện tại |
-| **Supabase project riêng** | Không lẫn data với webapp |
-| **Chọn môn TRƯỚC khi chụp** | Tối thiểu thao tác lúc đang nghe giảng (≤ 2 chạm) |
-| **Offline-first** | Wifi/4G VN không ổn định trong lớp học |
-| **2 buckets riêng** (`photos` + `thumbnails`) | Quản lý size và signed URL độc lập |
-| **MVP nhanh → dùng thử → mở rộng** | YAGNI |

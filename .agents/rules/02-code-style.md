@@ -1,47 +1,96 @@
-# Rule 02 — Code Style (TypeScript + React Native + NativeWind)
+# Rule 02 — Code Style (TypeScript + React Native + NestJS)
 
-## TypeScript
+## 1. General TypeScript Guidelines
 
 ```ts
-// ✅ Explicit types, không dùng `any`
+// ✅ Explicit types, tuyệt đối không dùng `any`
 const uploadPhoto = async (photo: Photo): Promise<void> => { ... }
 
-// ❌
+// ❌ Không dùng type any
 const upload = async (photo: any) => { ... }
 ```
 
-- Dùng `interface` cho object shapes, `type` cho union/utility types
-- Không dùng `as any` — nếu phải cast thì `as unknown as T` + comment lý do
-- Optional chaining `?.` và nullish coalescing `??`:
+- Dùng `interface` cho Object shapes / DTO definitions, `type` cho Unions hoặc Utility types.
+- Tuyệt đối không dùng `as any`. Nếu bắt buộc cast type thì dùng `as unknown as T` kèm giải thích.
+- Sử dụng Optional Chaining `?.` và Nullish Coalescing `??`:
+  ```ts
+  const name = category?.name ?? 'Không có tên'
+  ```
+
+---
+
+## 2. NestJS Backend Code Style (`backend/src/`)
+
+### A. Controllers (`*.controller.ts`)
+- Sử dụng NestJS Decorators: `@Controller('path')`, `@Get()`, `@Post()`, `@Body()`, `@Param()`, `@Query()`.
+- Gắn Swagger decorators cho tất cả endpoints: `@ApiTags()`, `@ApiOperation()`, `@ApiResponse()`.
+- Controllers **chỉ làm nhiệm vụ điều hướng request & response**, không được chứa logic nghiệp vụ hay truy vấn database trực tiếp.
 
 ```ts
-// ✅
-const name = subject?.name ?? 'Không tên'
+@ApiTags('categories')
+@Controller('categories')
+export class CategoriesController {
+  constructor(private readonly categoriesService: CategoriesService) {}
+
+  @Post()
+  @ApiOperation({ summary: 'Tạo danh mục/môn học mới' })
+  @ApiResponse({ status: 201, description: 'Tạo danh mục thành công' })
+  async create(@Body() createCategoryDto: CreateCategoryDto) {
+    return this.categoriesService.create(createCategoryDto);
+  }
+}
+```
+
+### B. Services (`*.service.ts`)
+- Sử dụng decorator `@Injectable()`.
+- Inject `PrismaService` qua constructor injection.
+- Xử lý toàn bộ logic nghiệp vụ, gọi Prisma DB query, và throw `HttpException` (như `BadRequestException`, `NotFoundException`).
+
+```ts
+@Injectable()
+export class CategoriesService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async create(dto: CreateCategoryDto) {
+    return this.prisma.category.create({
+      data: dto,
+    });
+  }
+}
+```
+
+### C. DTOs (`dto/*.dto.ts`)
+- Đặt tên file theo định dạng: `create-*.dto.ts`, `update-*.dto.ts`, `query-*.dto.ts`.
+- Gắn `class-validator` và `@nestjs/swagger` decorators trên từng thuộc tính:
+
+```ts
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+
+export class CreateCategoryDto {
+  @ApiProperty({ description: 'ID người sở hữu từ Supabase Auth' })
+  @IsUUID()
+  @IsNotEmpty()
+  userId: string;
+
+  @ApiProperty({ description: 'Tên danh mục/môn học' })
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+
+  @ApiPropertyOptional({ description: 'Mã màu Hex' })
+  @IsString()
+  @IsOptional()
+  color?: string;
+}
 ```
 
 ---
 
-## FSD Layer Rules (import chiều xuống, không ngược lên)
+## 3. React Native Mobile Code Style (`frontend/src/`)
 
-```
-app/ → screens/ → widgets/ → features/ → entities/ → shared/
-```
-
-- `features/` không import lẫn nhau
-- `app/` chỉ import từ `screens/`
-- Logic dùng chung giữa 2 features → đưa xuống `entities/` hoặc `shared/`
-
----
-
-## React Native Components
-
-**Cấu trúc file (thứ tự này, không đổi):**
+### A. Components Structure
 ```tsx
-// 1. Imports (external → internal)
-// 2. Types/Interfaces
-// 3. Component function
-// 4. Styles (StyleSheet hoặc NativeWind class strings)
-
 import React from 'react'
 import { View, Text } from 'react-native'
 import { Subject } from '@/types'
@@ -62,89 +111,21 @@ export function SubjectChip({ subject, selected, onPress }: SubjectChipProps) {
 }
 ```
 
-**Rules:**
-- Dùng **NativeWind** (className) cho layout/spacing/typography — dùng `style={}` chỉ khi cần dynamic values (màu từ data, v.d. `subject.color`)
-- Export named, không default export
-- Mỗi component 1 file, PascalCase trùng tên file
-- Không component quá 150 dòng → tách
+- Sử dụng **NativeWind** (`className`) cho layout, spacing, typography. Dùng `style={}` cho dynamic styles (như màu từ database).
+- Named exports cho components. Không dùng Default export.
+- Mỗi component 1 file, PascalCase trùng tên file. Không để file quá 150 dòng.
+
+### B. Custom Hooks
+- Tên hook bắt đầu bằng `use` (`useSubjects.ts`, `usePhotos.ts`).
+- Trả về object `{ subjects, loading, error, refetch }`.
 
 ---
 
-## Hooks
-
-```ts
-// Pattern chuẩn
-export function useSubjects() {
-  const [subjects, setSubjects] = useState<Subject[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  // logic...
-
-  return { subjects, loading, error, refetch }
-}
-```
-
-- Tên bắt đầu `use`
-- Return `{ data, loading, error }` pattern
-- Không gọi API trực tiếp trong component → luôn qua hook
-
----
-
-## File Naming
+## 4. File Naming Rules Across Monorepo
 
 ```
-src/shared/ui/atoms/     → PascalCase.tsx    (Button.tsx, Chip.tsx)
-src/shared/ui/molecules/ → PascalCase.tsx    (SubjectChip.tsx)
-src/entities/subject/    → camelCase.ts      (subjectApi.ts, subject.types.ts)
-src/features/*/          → camelCase.ts      (useCapturePhoto.ts)
-src/widgets/*/           → PascalCase.tsx    (PhotoGrid.tsx)
-src/screens/             → PascalCase.tsx    (CaptureScreen.tsx)
-src/store/               → camelCase.ts      (usePhotoStore.ts)
-```
-
----
-
-## Import Aliases
-
-```ts
-// ✅ Dùng @/ alias
-import { Subject } from '@/types'
-import { supabase } from '@/shared/lib/supabase'
-
-// ❌ Không relative dài
-import { Subject } from '../../../types'
-```
-
----
-
-## Constants (`src/shared/config/constants.ts`)
-
-```ts
-export const COLOR_OPTIONS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899']
-export const ICON_OPTIONS = ['📚', '🔬', '🧮', '🎨', '🏛️', '💻', '🌍', '⚗️']
-export const MAX_SUBJECT_NAME_LENGTH = 50
-export const PHOTO_QUALITY = 0.8
-export const THUMBNAIL_WIDTH = 200
-export const SYNC_MAX_RETRIES = 3
-```
-
-Không hardcode magic numbers trong component.
-
----
-
-## Error Handling
-
-```ts
-// ✅ Luôn handle, không silent fail
-const { data, error } = await supabase.from('subjects').select('id, name, color, icon')
-if (error) {
-  console.error('[useSubjects]', error.message)
-  setError(error.message)
-  return
-}
-
-// ❌ Silent crash
-const { data } = await supabase.from('subjects').select()
-setSubjects(data) // crash nếu data null
+backend/src/modules/*/       → kebab-case.ts    (categories.controller.ts, create-category.dto.ts)
+frontend/src/components/     → PascalCase.tsx   (CreateSubjectModal.tsx)
+frontend/src/hooks/          → camelCase.ts     (useSubjects.ts)
+frontend/src/lib/            → camelCase.ts     (subjectService.ts)
 ```

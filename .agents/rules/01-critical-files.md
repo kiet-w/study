@@ -1,59 +1,57 @@
-# Rule 01 — Critical Files (Không Sửa Không Có Lệnh)
+# Rule 01 — Critical Files (Không Sửa Khi Không Có Lệnh)
 
-## 🔴 PROTECTED — Phải xin phép user trước khi sửa
-
-### Supabase & Auth
-```
-src/lib/supabase.ts          — client singleton, RLS config
-src/store/useAuthStore.ts    — session state, login/logout logic
-```
-**Sai ở đây →** auth bị loop, user bị logout, mất session.
-
-### Photo Pipeline (Core Feature)
-```
-src/store/usePhotoStore.ts   — upload queue, sync state
-src/hooks/usePhotoSync.ts    — background upload logic
-```
-**Sai ở đây →** ảnh mất trước khi upload, queue bị corrupt.
-
-### Database
-```
-supabase/migrations/*.sql    — schema production
-```
-**Sai ở đây →** data production bị drop/mất. KHÔNG bao giờ viết raw migration mà không test trên local Supabase trước.
-
-### Routing
-```
-app/_layout.tsx              — root layout, auth guard, tab navigator
-```
-**Sai ở đây →** toàn bộ routing vỡ.
+> **Mục đích:** Bảo vệ các file hạt nhân của hệ thống Frontend & Backend khỏi nguy cơ hỏng hóc dây chuyền.
 
 ---
 
-## 🟡 CAREFUL — Sửa được nhưng phải trace impact trước
+## 🔴 PROTECTED — Phải kiểm tra cực kỳ kỹ trước khi chỉnh sửa
 
+### 1. Frontend Client & Auth
 ```
-src/types/index.ts           — core types dùng khắp nơi, đổi type là đổi toàn app
-src/lib/storage.ts           — local cache layer, offline-first logic
-src/hooks/useCamera.ts       — expo-camera wrapper
+frontend/src/lib/supabase.ts           — Supabase Singleton Client & auth session initialization
+frontend/src/store/useAuthStore.ts     — Auth session state manager (Zustand persist)
 ```
+**Rủi ro nếu sai:** Auth bị loop, user bị logout đột ngột, mất token session.
+
+### 2. Frontend Photo Pipeline
+```
+frontend/src/store/usePhotoStore.ts    — Queue upload ảnh local & sync status
+frontend/src/hooks/usePhotoSync.ts     — Logic upload nền & retry khi mất mạng
+```
+**Rủi ro nếu sai:** Mất ảnh vừa chụp trước khi sync, queue bị hỏng.
+
+### 3. Backend NestJS Core Infrastructure
+```
+backend/src/main.ts                    — NestFactory, ValidationPipe, Swagger setup, CORS
+backend/src/app.module.ts              — Root AppModule chứa toàn bộ module imports
+backend/src/shared/prisma/prisma.service.ts — Service kết nối DB chính của Prisma ORM
+backend/prisma/schema.prisma           — Prisma ORM Schema mapping Database PostgreSQL
+```
+**Rủi ro nếu sai:** Backend crash khi khởi chạy, lỗi kết nối DB toàn hệ thống, API bị mất middleware validation.
+
+### 4. Database Schema Production
+```
+supabase/migrations/*.sql              — SQL migration files trên Supabase Production
+.env                                   — Variables, secrets, DB connection strings
+```
+**Rủi ro nếu sai:** Lệch schema, mất dữ liệu production, rò rỉ API secrets.
 
 ---
 
-## 🟢 SAFE — Thoải mái sửa
+## 🟡 CAREFUL — Được sửa nhưng phải trace ảnh hưởng trước
 
 ```
-src/components/**/*          — UI components, style, layout
-src/lib/utils.ts             — helper functions
-assets/**/*                  — images, fonts
-app/(tabs)/styles/           — screen-level styles
+frontend/src/types/index.ts            — Core interfaces dùng toàn ứng dụng Frontend
+backend/src/shared/types/common.types.ts — Common DTOs & response interfaces Backend
+frontend/src/lib/storage.ts            — Storage wrapper cho AsyncStorage / SecureStore
 ```
 
 ---
 
-## Quy trình khi phát hiện lỗi liên quan critical files
+## 🟢 SAFE — Thoải mái bổ sung & chỉnh sửa
 
-1. **DỪNG** thay đổi khác đang làm
-2. Report ngay: file nào bị ảnh hưởng, diff là gì
-3. Không tự ý "fix nhanh" rồi tiếp tục
-4. Đợi user xác nhận hướng fix
+```
+frontend/src/components/**/*           — Components UI
+backend/src/modules/*/*.controller.ts  — API Endpoints mới
+backend/src/modules/*/*.service.ts     — Business logic mới
+```
