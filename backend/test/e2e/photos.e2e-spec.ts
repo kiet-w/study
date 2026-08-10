@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
-import { createTestApp, TEST_USER_A } from './test-utils';
+import { createTestApp, TEST_USER_A } from '../utils/test-utils';
 
 describe('Photos Module E2E Test Suite (/api/photos)', () => {
   let app: INestApplication;

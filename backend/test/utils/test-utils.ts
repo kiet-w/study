@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import { AppModule } from '../src/app.module';
-import { HttpExceptionFilter } from '../src/shared/filters/http-exception.filter';
-import { TransformInterceptor } from '../src/shared/interceptors/transform.interceptor';
+import { AppModule } from '../../src/app.module';
+import { HttpExceptionFilter } from '../../src/shared/filters/http-exception.filter';
+import { TransformInterceptor } from '../../src/shared/interceptors/transform.interceptor';
 
 export async function createTestApp(): Promise<INestApplication> {
   const moduleFixture: TestingModule = await Test.createTestingModule({

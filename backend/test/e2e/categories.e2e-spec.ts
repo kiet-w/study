@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
-import { createTestApp, TEST_USER_A, TEST_USER_B } from './test-utils';
+import { createTestApp, TEST_USER_A, TEST_USER_B } from '../utils/test-utils';
 
 describe('Categories Module E2E Test Suite (/api/categories)', () => {
   let app: INestApplication;
