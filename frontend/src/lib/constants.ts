@@ -9,4 +9,4 @@ export const COLOR_OPTIONS = [
 
 export const ICON_OPTIONS = ['📚', '🔬', '🧮', '🎨', '🏛️', '💻', '🌍', '⚗️']
 
-export const MAX_SUBJECT_NAME_LENGTH = 50
+export const MAX_CATEGORY_NAME_LENGTH = 50

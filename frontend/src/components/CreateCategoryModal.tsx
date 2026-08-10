@@ -9,15 +9,15 @@ import {
   StyleSheet,
 } from 'react-native'
 import { COLOR_OPTIONS, ICON_OPTIONS } from '@/lib/constants'
-import { useSubjects } from '@/hooks/useSubjects'
+import { useCategories } from '@/hooks/useCategories'
 
-export interface CreateSubjectModalProps {
+export interface CreateCategoryModalProps {
   visible: boolean
   onClose: () => void
 }
 
-export function CreateSubjectModal({ visible, onClose }: CreateSubjectModalProps) {
-  const { createSubject } = useSubjects()
+export function CreateCategoryModal({ visible, onClose }: CreateCategoryModalProps) {
+  const { createCategory } = useCategories()
 
   const [name, setName] = useState('')
   const [selectedColor, setSelectedColor] = useState(COLOR_OPTIONS[0] || '#3B82F6')
@@ -31,8 +31,7 @@ export function CreateSubjectModal({ visible, onClose }: CreateSubjectModalProps
     setError(null)
     setSubmitting(true)
     try {
-      await createSubject({ name: name.trim(), color: selectedColor, icon: selectedIcon })
-      // Reset form và đóng modal khi thành công
+      await createCategory({ name: name.trim(), color: selectedColor, icon: selectedIcon })
       setName('')
       setSelectedColor(COLOR_OPTIONS[0] || '#3B82F6')
       setSelectedIcon(ICON_OPTIONS[0] || '📚')
@@ -61,7 +60,7 @@ export function CreateSubjectModal({ visible, onClose }: CreateSubjectModalProps
         <View style={styles.sheet}>
           <Text style={styles.title}>Tạo môn học mới</Text>
 
-          {/* Tên môn */}
+          {/* Tên môn học */}
           <Text style={styles.label}>Tên môn học</Text>
           <TextInput
             style={styles.input}

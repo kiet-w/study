@@ -45,7 +45,3 @@ export interface Photo {
   synced: boolean;
   created_at: string;
 }
-
-// Aliases for backward compatibility
-export type Subject = Category;
-export type CreateSubjectInput = CreateCategoryInput;

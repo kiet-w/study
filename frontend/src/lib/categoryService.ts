@@ -35,6 +35,3 @@ export const categoryService = {
     return categoryRepository.delete(categoryId, userId);
   },
 };
-
-// Aliases for backwards compatibility
-export const subjectService = categoryService;

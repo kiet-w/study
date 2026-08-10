@@ -39,6 +39,3 @@ export const categoryRepository = {
     if (error) throw error;
   },
 };
-
-// Aliases for backwards compatibility
-export const subjectRepository = categoryRepository;

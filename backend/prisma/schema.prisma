@@ -1,6 +1,8 @@
 // schema.prisma
-// Prisma Schema for StudySnap: User, Category, Topic, Photo
-// Map trực tiếp với Supabase PostgreSQL (users, categories, topics, photos)
+// Prisma Schema for StudySnap: Category, Topic, Photo
+// Map trực tiếp với Supabase PostgreSQL (categories, topics, photos)
+// ⚠️ Lưu ý: KHÔNG khai báo model User trong Prisma để tránh tạo bảng public.users 
+// gây sai lệch với Supabase Auth (auth.users) và hỏng RLS policies (auth.uid() = user_id).
 
 generator client {
   provider = "prisma-client-js"
@@ -12,21 +14,6 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-model User {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email     String   @unique
-  fullName  String?  @map("full_name")
-  avatarUrl String?  @map("avatar_url")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
-
-  categories Category[]
-  topics     Topic[]
-  photos     Photo[]
-
-  @@map("users")
-}
-
 model Category {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId    String   @map("user_id") @db.Uuid
@@ -36,7 +23,6 @@ model Category {
   sortOrder Int      @default(0) @map("sort_order")
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
 
-  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   topics Topic[]
   photos Photo[]
 
@@ -54,7 +40,6 @@ model Topic {
   sortOrder  Int      @default(0) @map("sort_order")
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
 
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   photos   Photo[]
 
@@ -76,7 +61,6 @@ model Photo {
   synced        Boolean   @default(false)
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
 
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   topic    Topic?    @relation(fields: [topicId], references: [id], onDelete: SetNull)
 
