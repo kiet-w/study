@@ -2,7 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
-  IsDate,
+  IsDateString,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -27,9 +27,9 @@ export class CreatePhotoDto {
   storagePath: string;
 
   @ApiProperty({ description: 'Timestamp when photo was taken', example: '2026-08-09T10:00:00.000Z' })
-  @Type(() => Date)
-  @IsDate()
-  takenAt: Date;
+  @IsDateString()
+  @IsNotEmpty()
+  takenAt: string;
 
   @ApiPropertyOptional({ description: 'Category ID (UUID)', example: '123e4567-e89b-12d3-a456-426614174001' })
   @IsOptional()
@@ -64,8 +64,6 @@ export class CreatePhotoDto {
 
   @ApiPropertyOptional({ description: 'Creation timestamp', example: '2026-08-09T10:00:00.000Z' })
   @IsOptional()
-  @Type(() => Date)
-  @IsDate()
-  createdAt?: Date;
+  @IsDateString()
+  createdAt?: string;
 }
-
